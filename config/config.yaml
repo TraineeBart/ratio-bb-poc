@@ -1,0 +1,27 @@
+# KuCoin subaccount voor Ratio BB PoC
+
+# 1) KuCoin API‐settings
+kucoin_api_key: 67e7aa8b4a9c360001c0e566
+kucoin_api_secret: 166a6af3-53a9-4dbe-b66a-67522128b000
+kucoin_passphrase: TY2s0MKVhh4WKGPfCe35
+
+# 2) Logging
+log_level: INFO
+log_file: '/opt/tradingbot/ratio-bb-poc/logs/app.log'
+
+# 3) Filters & strategie‐parameters
+nk_threshold: 0.0
+volume_threshold: 0.0
+short_ema_span: 9
+
+# 4) Simulatie‐kosten
+slippage_rate: 0.001
+fee_rate: 0.001
+
+# 5) Paden
+data_path: '/opt/tradingbot/ratio-bb-poc/data/historical.csv'
+
+# 6) Realtime tickers
+symbols:
+  - THETA-USDT
+  - TFUEL-USDT

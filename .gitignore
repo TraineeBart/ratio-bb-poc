@@ -1,0 +1,22 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtualenv
+venv/
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Test & editor caches
+.pytest_cache/
+.vscode/
+.idea/
+
+# Grote data-bestanden
+data/*.csv
+# Maar wél je sample-data
+!data/sample-*.csv
