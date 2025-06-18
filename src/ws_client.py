@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import pandas as pd
 from kucoin.client import Client as RestClient
 from kucoin.asyncio import KucoinSocketManager
 from developer import load_config
@@ -24,7 +25,7 @@ class WSClient:
         self.nk_threshold = cfg.get('nk_threshold', 1.0)
         self.volume_filter = cfg.get('volume_filter', 0.0)
         # Initialize strategy with configuration
-        self.strat = Strategy(cfg)
+        self.strat = Strategy(pd.DataFrame(), cfg)
         self.tick_amount = cfg.get('tick_amount', 1.0)
 
     async def _on_message(self, msg):
