@@ -1,12 +1,12 @@
 # KuCoin subaccount voor Ratio BB PoC
 
-# 1) KuCoin API‐settings
-kucoin_api_key: 67e7aa8b4a9c360001c0e566
-kucoin_api_secret: 166a6af3-53a9-4dbe-b66a-67522128b000
-kucoin_passphrase: TY2s0MKVhh4WKGPfCe35
+# 1) KuCoin API‐settings (loaded from environment)
+kucoin_api_key: "${KUCOIN_API_KEY}"
+kucoin_api_secret: "${KUCOIN_API_SECRET}"
+kucoin_passphrase: "${KUCOIN_PASSPHRASE}"
 
 # 2) Logging
-log_level: INFO
+log_level: WARNING
 log_file: 'logs/app.log'
 
 # 3) Filters & strategie‐parameters
