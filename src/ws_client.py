@@ -24,8 +24,10 @@ class WSClient:
         self.ema_span = cfg.get('ema_span', 9)
         self.nk_threshold = cfg.get('nk_threshold', 1.0)
         self.volume_filter = cfg.get('volume_filter', 0.0)
-        # Initialize strategy with configuration
-        self.strat = Strategy(pd.DataFrame(), cfg)
+        # initialize a DataFrame buffer for incoming ticks
+        self.tick_buffer = pd.DataFrame(columns=['price', 'size', 'nk'])
+        # Initialize strategy with configuration and tick buffer
+        self.strat = Strategy(self.tick_buffer, cfg)
         self.tick_amount = cfg.get('tick_amount', 1.0)
 
     async def _on_message(self, msg):
@@ -42,20 +44,24 @@ class WSClient:
         """
         Handle each tick by generating strategy signal and simulating orders only on BUY/SELL.
         """
-        # Build a minimal tick dict for strategy
-        tick = {
-            'price': price,
-            'size': self.tick_amount,
-            'nk': 1,
-            f'ema_{self.ema_span}': price
-        }
-        signal = self.strat.generate_signal(tick)
-        if signal in ("BUY", "SELL"):
-            price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-            logger.info(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
-        else:
-            # Skip logging for HOLD signals
-            pass
+        # Build and append tick to buffer
+        tick = {'price': price, 'size': self.tick_amount, 'nk': 1}
+        self.tick_buffer = pd.concat([self.tick_buffer, pd.DataFrame([tick])], ignore_index=True)
+        # optionally keep only the last N ticks
+        if len(self.tick_buffer) > 100:
+            self.tick_buffer = self.tick_buffer.iloc[-100:].reset_index(drop=True)
+        # update strategy data
+        self.strat.data = self.tick_buffer
+        # run strategy to compute EMA and apply filters
+        df_sig = self.strat.run()
+        if not df_sig.empty:
+            last_row = df_sig.iloc[-1]
+            last_price = last_row['price']
+            last_ema = last_row[f'ema_{self.ema_span}']
+            # simple crossover: price > ema -> BUY signal
+            if last_price > last_ema:
+                price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
+                logger.info(f"✔ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}")
 
     async def _run_async(self):
         loop = asyncio.get_event_loop()
