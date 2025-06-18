@@ -1,24 +1,27 @@
-from typing import Dict
 import pandas as pd
+from developer import load_config
+from strategy import Strategy
 
-class Strategy:
-    def __init__(self, data: pd.DataFrame, config: Dict):
-        self.data = data
-        self.config = config
 
-    def run(self):
-        # Existing run method implementation
-        pass
+def main():
+    # Load configuration
+    cfg = load_config()
 
-    def generate_signal(self, tick: dict) -> str:
-        price = float(tick.get('price', 0))
-        span = self.config.get('short_ema_span', 9)
-        # Compute EMA over existing data + this tick
-        prices = pd.concat([self.data['price'], pd.Series([price])], ignore_index=True)
-        ema = prices.ewm(span=span, adjust=False).mean().iloc[-1]
-        if price > ema:
-            return "BUY"
-        elif price < ema:
-            return "SELL"
-        else:
-            return "HOLD"
+    # Read historical CSV path from config
+    hist_path = cfg.get('historical_csv_path')
+    df = pd.read_csv(hist_path)
+
+    # Take the latest tick
+    last_tick = df.iloc[-1].to_dict()
+    df_tick = pd.DataFrame([last_tick])
+
+    # Initialize strategy with DataFrame and config
+    strat = Strategy(df_tick, cfg)
+
+    # Generate and output signal
+    signal = strat.generate_signal(last_tick)
+    print(signal)
+
+
+if __name__ == '__main__':
+    main()
