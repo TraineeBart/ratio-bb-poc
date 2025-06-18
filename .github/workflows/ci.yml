@@ -34,9 +34,9 @@ jobs:
       - name: Run tests
         env:
           PYTHONPATH: src
-        run: |
-          pytest -q
         continue-on-error: true
+        run: pytest -q
+
       - name: Notify on failure via Telegram
         if: failure()
         uses: appleboy/telegram-action@master
