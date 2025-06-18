@@ -5,6 +5,7 @@ from kucoin.client import Client as RestClient
 from kucoin.asyncio import KucoinSocketManager
 from developer import load_config
 from executor import Execution
+from src.strategy import Strategy
 
 class WSClient:
     def __init__(self, symbols):
@@ -16,6 +17,14 @@ class WSClient:
             cfg['kucoin_api_secret'],
             cfg['kucoin_passphrase']
         )
+        self.exec_mod = Execution(cfg)
+        self.ema_span = cfg.get('ema_span', 9)
+        self.nk_threshold = cfg.get('nk_threshold', 1.0)
+        self.volume_filter = cfg.get('volume_filter', 0.0)
+        self.strat = Strategy(nk_threshold=self.nk_threshold,
+                              volume_filter=self.volume_filter,
+                              ema_span=self.ema_span)
+        self.tick_amount = cfg.get('tick_amount', 1.0)
 
     async def _on_message(self, msg):
         # Only process ticker updates
@@ -29,14 +38,23 @@ class WSClient:
 
     def handle_tick(self, symbol, price):
         """
-        Handle each tick by simulating an order and logging the result.
+        Handle each tick by generating strategy signal and simulating orders only on BUY/SELL.
         """
-        cfg = load_config()
-        amount = cfg.get('tick_amount', 1.0)
-        exec_mod = Execution(cfg)
-        price_slip, amt_after_fee = exec_mod.simulate_order(price, amount)
-        logging.info(f"Tick {symbol} @ {price} -> Simulated order at {price_slip}, amount {amt_after_fee}")
-        print(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
+        # Build a minimal tick dict for strategy
+        tick = {
+            'price': price,
+            'size': self.tick_amount,
+            'nk': 1,
+            f'ema_{self.ema_span}': price
+        }
+        signal = self.strat.generate_signal(tick)
+        if signal in ("BUY", "SELL"):
+            price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
+            logging.info(f"{signal} {symbol} @ price after slippage {price_slip}, amount {amt_after_fee}")
+            print(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
+        else:
+            # Skip logging for HOLD signals
+            pass
 
     async def _run_async(self):
         loop = asyncio.get_event_loop()
