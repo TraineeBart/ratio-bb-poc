@@ -15,6 +15,12 @@ handler = RotatingFileHandler(
     encoding='utf-8'
 )
 handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s'))
+
+# Console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s'))
+root_logger.addHandler(console_handler)
 root_logger.addHandler(handler)
 
 # Allow ws_client module to log at INFO (for BUY/SELL events)
