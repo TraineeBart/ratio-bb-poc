@@ -1,13 +1,16 @@
 import pandas as pd
 from developer import load_config
 from strategy import Strategy
+import os
 
 def main():
     # 1) Config inladen
     cfg = load_config()
 
     # 2) Historische data inlezen
-    hist_path = cfg.get('historical_csv_path')
+    hist_path = cfg.get('historical_csv_path', 'data/historical.csv')
+    if not os.path.isfile(hist_path):
+        raise FileNotFoundError(f"Kan historische data niet vinden: {hist_path}")
     df = pd.read_csv(hist_path)
 
     # 3) Strategy initialiseren
