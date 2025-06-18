@@ -19,7 +19,7 @@ COPY . .
 
 # Set default environment variables (override at runtime if needed)
 ENV ENV=PROD
-ENV LOG_LEVEL=INFO
+ENV LOG_LEVEL=WARNING
 
 # Entry point: start the WebSocket bot/orchestrator
 CMD ["python", "main.py"]
