@@ -1,7 +1,5 @@
 import asyncio
 import json
-import logging
-logger = logging.getLogger(__name__)
 from kucoin.client import Client as RestClient
 from kucoin.asyncio import KucoinSocketManager
 from developer import load_config
@@ -51,7 +49,6 @@ class WSClient:
         signal = self.strat.generate_signal(tick)
         if signal in ("BUY", "SELL"):
             price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-            logger.info(f"{signal} {symbol} @ price after slippage {price_slip}, amount {amt_after_fee}")
             print(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
         else:
             # Skip logging for HOLD signals
