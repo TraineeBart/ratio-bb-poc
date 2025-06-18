@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 from kucoin.client import Client as RestClient
 from kucoin.asyncio import KucoinSocketManager
 from developer import load_config
 from executor import Execution
 from src.strategy import Strategy
+
+logger = logging.getLogger(__name__)
 
 class WSClient:
     def __init__(self, symbols):
@@ -49,7 +52,7 @@ class WSClient:
         signal = self.strat.generate_signal(tick)
         if signal in ("BUY", "SELL"):
             price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-            print(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
+            logger.info(f"✔ Simulated order for {symbol}: price after slippage {price_slip}, amount after fee {amt_after_fee}")
         else:
             # Skip logging for HOLD signals
             pass
@@ -57,14 +60,14 @@ class WSClient:
     async def _run_async(self):
         loop = asyncio.get_event_loop()
         ksm = await KucoinSocketManager.create(loop, self.rest_client, self._on_message)
-        print("WebSocket manager created, subscribing to symbols:", self.symbols)
+        # print("WebSocket manager created, subscribing to symbols:", self.symbols)
         for sym in self.symbols:
-            print(f"Subscribing to topic /market/ticker:{sym}")
+            # print(f"Subscribing to topic /market/ticker:{sym}")
             await ksm.subscribe(f'/market/ticker:{sym}')
-        print("Entering event loop, awaiting tick messages")
+        # print("Entering event loop, awaiting tick messages")
         while True:
             await asyncio.sleep(1)
 
     def run(self):
-        print("WSClient.run() called, starting async loop")
+        # print("WSClient.run() called, starting async loop")
         asyncio.get_event_loop().run_until_complete(self._run_async())
