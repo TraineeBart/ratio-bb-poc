@@ -1,7 +1,7 @@
 from developer import load_config
 from kucoin_client import get_kucoin_client
 from executor import Execution
-from src.strategy import Strategy  # Ensure correct import path
+from strategy import Strategy  # Ensure correct import path
 
 def main():
     # Load configuration
