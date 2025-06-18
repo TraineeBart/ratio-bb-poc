@@ -11,8 +11,8 @@ log_file: 'logs/app.log'
 
 # 3) Filters & strategie‐parameters
 nk_threshold: 0.0
-volume_threshold: 0.0
-short_ema_span: 9
+volume_filter: 0.0
+ema_span: 3   # korter span maakt crossover sneller
 
 # 4) Simulatie‐kosten
 slippage_rate: 0.001
