@@ -2,27 +2,24 @@ from developer import load_config
 from kucoin_client import get_kucoin_client
 from executor import Execution
 from strategy import Strategy  # Ensure correct import path
+import pandas as pd
 
 def main():
     # Load configuration
     cfg = load_config()
     symbols       = cfg.get('symbols', [])
     tick_amount   = cfg.get('tick_amount', 1.0)
-    ema_span      = cfg.get('ema_span', 9)
-    nk_threshold  = cfg.get('nk_threshold', 1.0)
-    volume_filter = cfg.get('volume_filter', 0.0)
 
     # Initialize clients and modules
     client   = get_kucoin_client()
     executor = Execution(cfg)
-    strat    = Strategy(nk_threshold=nk_threshold,
-                        volume_filter=volume_filter,
-                        ema_span=ema_span)
 
     # Process one tick per symbol and exit
     for sym in symbols:
         data = client.get_ticker(sym)
         price = float(data['price'])
+        df_tick = pd.DataFrame([data])
+        strat = Strategy(df_tick, cfg)
         signal = strat.generate_signal(data)
 
         if signal in ("BUY", "SELL"):
