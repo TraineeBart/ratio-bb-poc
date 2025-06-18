@@ -1,4 +1,6 @@
 import logging
+from logging.handlers import RotatingFileHandler
+import os
 import pandas as pd
 from developer import load_config
 from strategy import Strategy
@@ -7,9 +9,28 @@ from executor import Execution
 class Orchestrator:
     def __init__(self, config):
         self.config = config
+        # Ensure logs directory exists
         log_file = config.get('log_file', 'logs/app.log')
-        logging.basicConfig(filename=log_file, level=getattr(logging, config.get('log_level', 'INFO')))
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+
+        # Set up root logger
+        logger = logging.getLogger()
+        logger.setLevel(getattr(logging, config.get('log_level', 'WARNING')))
+
+        # Rotating handler: max 5 MB, keep 3 backups
+        handler = RotatingFileHandler(
+            filename=log_file,
+            maxBytes=5 * 1024 * 1024,
+            backupCount=3,
+            encoding='utf-8'
+        )
+        formatter = logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        # Module-specific logger for orchestrator
         self.logger = logging.getLogger('Orchestrator')
+        self.logger.setLevel(logging.INFO)
 
     def run(self):
         data_path = self.config.get('data_path')
