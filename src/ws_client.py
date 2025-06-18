@@ -23,9 +23,8 @@ class WSClient:
         self.ema_span = cfg.get('ema_span', 9)
         self.nk_threshold = cfg.get('nk_threshold', 1.0)
         self.volume_filter = cfg.get('volume_filter', 0.0)
-        self.strat = Strategy(nk_threshold=self.nk_threshold,
-                              volume_filter=self.volume_filter,
-                              ema_span=self.ema_span)
+        # Initialize strategy with configuration
+        self.strat = Strategy(cfg)
         self.tick_amount = cfg.get('tick_amount', 1.0)
 
     async def _on_message(self, msg):
