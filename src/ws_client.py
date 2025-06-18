@@ -46,7 +46,8 @@ class WSClient:
         """
         # Build and append tick to buffer
         tick = {'price': price, 'size': self.tick_amount, 'nk': 1}
-        self.tick_buffer = pd.concat([self.tick_buffer, pd.DataFrame([tick])], ignore_index=True)
+        # append new tick row without concat to avoid FutureWarning
+        self.tick_buffer.loc[len(self.tick_buffer)] = [tick['price'], tick['size'], tick['nk']]
         # optionally keep only the last N ticks
         if len(self.tick_buffer) > 100:
             self.tick_buffer = self.tick_buffer.iloc[-100:].reset_index(drop=True)
