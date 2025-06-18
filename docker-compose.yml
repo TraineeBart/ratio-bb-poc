@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  ratio-bb-poc:
+    build: .
+    container_name: ratio-bb-poc
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - ENV=PROD
+    volumes:
+      - ./logs:/app/logs
+    # Optioneel: data mount voor historische CSVs
+    # - ./data:/app/data
+    command: ["python", "main.py"]

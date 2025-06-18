@@ -7,7 +7,7 @@ kucoin_passphrase: TY2s0MKVhh4WKGPfCe35
 
 # 2) Logging
 log_level: INFO
-log_file: '/opt/tradingbot/ratio-bb-poc/logs/app.log'
+log_file: 'logs/app.log'
 
 # 3) Filters & strategie‐parameters
 nk_threshold: 0.0
@@ -19,7 +19,7 @@ slippage_rate: 0.001
 fee_rate: 0.001
 
 # 5) Paden
-data_path: '/opt/tradingbot/ratio-bb-poc/data/historical.csv'
+data_path: 'data/historical.csv'
 
 # 6) Realtime tickers
 symbols:

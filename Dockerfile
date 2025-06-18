@@ -4,6 +4,9 @@ FROM python:3.10-slim
 # Set working directory inside the container
 WORKDIR /app
 
+# Suppress pip root user warning
+ENV PIP_ROOT_USER_ACTION=ignore
+
 # Copy only requirements to leverage Docker cache
 COPY requirements.txt .
 
