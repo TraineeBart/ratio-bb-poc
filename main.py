@@ -14,7 +14,7 @@ def main():
     os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
     logger = logging.getLogger()
-    logger.setLevel(getattr(logging, cfg.get('log_level', 'INFO')))
+    logger.setLevel(getattr(logging, cfg.get('log_level', 'WARNING')))
 
     # Rotating file handler: max 5 MB per file, keep 3 backups
     handler = RotatingFileHandler(
@@ -26,6 +26,9 @@ def main():
     formatter = logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s')
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
+    # Allow ws_client module to log at INFO (for BUY/SELL events)
+    logging.getLogger('ws_client').setLevel(logging.INFO)
 
     # Determine which symbols to subscribe to
     symbols = cfg.get('symbols', ['THETA-USDT', 'TFUEL-USDT'])
