@@ -9,8 +9,8 @@ services:
       - .env
     environment:
       - ENV=PROD
-    volumes:
-      - ./logs:/app/logs
+    # volumes:
+    #   - ./logs:/app/logs
     # Optioneel: data mount voor historische CSVs
     # - ./data:/app/data
     command: ["python", "main.py"]
