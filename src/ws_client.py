@@ -68,6 +68,7 @@ class WSClient:
                     f"✔ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | "
                     f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
                 )
+                print(f"▶️ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
                 if self.signal_callback:
                     payload = {
                         'symbol': symbol,
@@ -82,6 +83,7 @@ class WSClient:
                     f"✔ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | "
                     f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
                 )
+                print(f"▶️ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
                 if self.signal_callback:
                     payload = {
                         'symbol': symbol,
