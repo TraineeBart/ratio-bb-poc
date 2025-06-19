@@ -1,4 +1,5 @@
 import sys, os
+import requests
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -34,9 +35,19 @@ from ws_client import WSClient
 def main():
     print("▶️ In main(): starting WebSocket client")
     cfg = load_config()
+    webhook_url = cfg.get('webhook_url')
     # Determine which symbols to subscribe to
     symbols = cfg.get('symbols', ['THETA-USDT', 'TFUEL-USDT'])
     ws = WSClient(symbols)
+
+    def on_signal(payload: dict):
+        if webhook_url:
+            try:
+                requests.post(webhook_url, json=payload, timeout=5)
+            except Exception as e:
+                logging.getLogger(__name__).error(f"Webhook POST failed: {e}")
+
+    ws.set_signal_callback(on_signal)
     ws.run()
 
 if __name__ == '__main__':
