@@ -17,7 +17,7 @@ handler = RotatingFileHandler(
 )
 handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s'))
 
-# Console handler
+# Console handler: duplicate logs to stdout
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s:%(name)s:%(message)s'))
