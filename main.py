@@ -8,7 +8,7 @@ log_file_path = os.getenv('LOG_FILE', 'logs/app.log')
 os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
 root_logger = logging.getLogger()
-root_logger.setLevel(logging.ERROR)
+root_logger.setLevel(logging.INFO)
 handler = RotatingFileHandler(
     filename=log_file_path,
     maxBytes=5 * 1024 * 1024,
