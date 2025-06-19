@@ -2,6 +2,7 @@ import pandas as pd
 from developer import load_config
 from strategy import Strategy
 import os
+import json
 
 def main():
     # 1) Config inladen
@@ -24,7 +25,10 @@ def main():
     signal = strat.generate_signal(last_tick)
 
     # 6) Print alleen het signaal
-    print(signal)
+    # combine tick data and signal
+    output = last_tick.copy()
+    output['signal'] = signal
+    print(json.dumps(output))
 
 if __name__ == '__main__':
     main()
