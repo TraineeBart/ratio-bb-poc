@@ -8,7 +8,8 @@ from developer import load_config
 from executor import Execution
 from src.strategy import Strategy
 
-logger = logging.getLogger(__name__)
+# use root logger so messages propagate to console handler
+logger = logging.getLogger()
 
 class WSClient:
     def __init__(self, symbols):
