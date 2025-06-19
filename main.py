@@ -41,6 +41,8 @@ def main():
     ws = WSClient(symbols)
 
     def on_signal(payload: dict):
+        # Log every incoming signal payload
+        logging.getLogger(__name__).info(f"on_signal payload: {payload}")
         if webhook_url:
             try:
                 requests.post(webhook_url, json=payload, timeout=5)
