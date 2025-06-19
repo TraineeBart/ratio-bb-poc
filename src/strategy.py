@@ -23,19 +23,23 @@ class Strategy:
 
     def generate_signal(self, tick: dict) -> str:
         """
-        Genereer een signaal op basis van nk-waarde en threshold:
-        - 'SELL' als nk > nk_threshold
-        - 'BUY'  als nk < nk_threshold
-        - 'HOLD' anders
+        Eenvoudige crossover op basis van korte EMA:
+        - BUY  als prijs > EMA
+        - SELL als prijs < EMA
+        - HOLD anders (of bij ontbrekende EMA)
         """
-        nk_value = tick.get('nk', 0)
-        threshold = self.config.get('nk_threshold', 0)
-        if nk_value > threshold:
-            return 'SELL'
-        elif nk_value < threshold:
-            return 'BUY'
-        else:
+        # bepaal de sleutel voor de korte EMA
+        span = self.config.get('short_ema_span', 9)
+        ema_key = f"ema_{span}"
+        price = tick.get('price')
+        ema = tick.get(ema_key)
+        if ema is None or price is None:
             return 'HOLD'
+        if price > ema:
+            return 'BUY'
+        if price < ema:
+            return 'SELL'
+        return 'HOLD'
 
 if __name__ == '__main__':
     import argparse
