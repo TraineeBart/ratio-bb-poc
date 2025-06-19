@@ -60,13 +60,34 @@ class WSClient:
             last_row = df_sig.iloc[-1]
             last_price = last_row['price']
             last_ema = last_row[f'ema_{self.ema_span}']
-            # simple crossover: price > ema -> BUY signal
+            # simple crossover: price > ema -> BUY, price < ema -> SELL
             if last_price > last_ema:
                 price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-                logger.info(f"✔ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}")
-                # invoke signal callback if set
+                logger.info(
+                    f"✔ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | "
+                    f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
+                )
                 if self.signal_callback:
-                    payload = {'symbol': symbol, 'signal': 'BUY', 'price': last_price, 'amount': amt_after_fee}
+                    payload = {
+                        'symbol': symbol,
+                        'signal': 'BUY',
+                        'price': last_price,
+                        'amount': amt_after_fee
+                    }
+                    self.signal_callback(payload)
+            elif last_price < last_ema:
+                price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
+                logger.info(
+                    f"✔ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | "
+                    f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
+                )
+                if self.signal_callback:
+                    payload = {
+                        'symbol': symbol,
+                        'signal': 'SELL',
+                        'price': last_price,
+                        'amount': amt_after_fee
+                    }
                     self.signal_callback(payload)
 
     async def _run_async(self):
