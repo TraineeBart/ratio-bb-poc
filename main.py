@@ -43,6 +43,7 @@ def main():
     def on_signal(payload: dict):
         # Log every incoming signal payload
         logging.getLogger(__name__).info(f"on_signal payload: {payload}")
+        print(f"📣 SIGNAL: {payload}", flush=True)
         if webhook_url:
             try:
                 requests.post(webhook_url, json=payload, timeout=5)
