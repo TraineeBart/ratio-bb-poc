@@ -10,6 +10,8 @@ from src.strategy import Strategy
 
 # use root logger so messages propagate to console handler
 logger = logging.getLogger()
+# only show warnings or above from logger; signals will still print via stdout
+logger.setLevel(logging.WARNING)
 
 class WSClient:
     def __init__(self, symbols):
