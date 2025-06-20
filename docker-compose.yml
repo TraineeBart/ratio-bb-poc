@@ -9,8 +9,17 @@ services:
       - .env
     environment:
       - ENV=PROD
-    # volumes:
-    #   - ./logs:/app/logs
+      - LOG_LEVEL=INFO
+    volumes:
+      - type: tmpfs
+        target: /app/logs
+        tmpfs:
+          size: 52428800
     # Optioneel: data mount voor historische CSVs
     # - ./data:/app/data
     command: ["python", "main.py"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 400M
