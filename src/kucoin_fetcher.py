@@ -18,8 +18,12 @@ def fetch_klines(
     raw_data = client.get_candles(symbol, interval, start_ts, limit)
     candles = parse_klines(raw_data)
 
-    # Converteer list van dataclasses naar DataFrame
-    df = pd.DataFrame([c.__dict__ for c in candles])
+    # Converteer list van dataclasses naar DataFrame in juiste kolomvolgorde
+    rows = [
+        [c.time, c.open, c.high, c.low, c.close, c.volume]
+        for c in candles
+    ]
+    df = pd.DataFrame(rows, columns=["time", "open", "high", "low", "close", "volume"])
     df = df.astype({
         "time": int,
         "open": float,
@@ -28,4 +32,4 @@ def fetch_klines(
         "close": float,
         "volume": float
     })
-    return df[["time", "open", "high", "low", "close", "volume"]]
+    return df

@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 import pandas as pd
+import time
+from typing import Callable, Dict, Any
 from kucoin.client import Client as RestClient
 from kucoin.asyncio import KucoinSocketManager
 from developer import load_config
@@ -32,7 +34,7 @@ class WSClient:
         # Initialize strategy with configuration and tick buffer
         self.strat = Strategy(self.tick_buffer, cfg)
         self.tick_amount = cfg.get('tick_amount', 1.0)
-        self.signal_callback = None
+        self._signal_callback: Callable[[Dict[str, Any]], None] = None
 
     async def _on_message(self, msg):
         # Only process ticker updates
@@ -71,14 +73,7 @@ class WSClient:
                     f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
                 )
                 print(f"▶️ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
-                if self.signal_callback:
-                    payload = {
-                        'symbol': symbol,
-                        'signal': 'BUY',
-                        'price': last_price,
-                        'amount': amt_after_fee
-                    }
-                    self.signal_callback(payload)
+                self._emit_signal(symbol, "BUY", last_price, amt_after_fee)
             elif last_price < last_ema:
                 price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
                 logger.info(
@@ -86,14 +81,21 @@ class WSClient:
                     f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
                 )
                 print(f"▶️ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
-                if self.signal_callback:
-                    payload = {
-                        'symbol': symbol,
-                        'signal': 'SELL',
-                        'price': last_price,
-                        'amount': amt_after_fee
-                    }
-                    self.signal_callback(payload)
+                self._emit_signal(symbol, "SELL", last_price, amt_after_fee)
+
+    def _emit_signal(self, symbol: str, signal: str, price: float, amount: float) -> None:
+        """
+        Internal: build payload with timestamp and invoke the registered callback.
+        """
+        payload = {
+            "symbol": symbol,
+            "timestamp": int(time.time()),
+            "signal": signal,
+            "price": price,
+            "amount": amount,
+        }
+        if self._signal_callback:
+            self._signal_callback(payload)
 
     async def _run_async(self):
         loop = asyncio.get_event_loop()
@@ -110,6 +112,6 @@ class WSClient:
         # print("WSClient.run() called, starting async loop")
         asyncio.get_event_loop().run_until_complete(self._run_async())
 
-    def set_signal_callback(self, callback):
+    def set_signal_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
         """Register a callback to be invoked on BUY/SELL signals."""
-        self.signal_callback = callback
+        self._signal_callback = callback

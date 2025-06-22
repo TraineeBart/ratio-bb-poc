@@ -2,9 +2,12 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 import pandas as pd
+import csv
+import requests
 from developer import load_config
 from strategy import Strategy
 from executor import Execution
+from src.ws_client import WSClient
 
 class Orchestrator:
     def __init__(self, config):
@@ -45,7 +48,39 @@ class Orchestrator:
             self.logger.info(f"Order simulated at price {price_slip}, amount {amt_after_fee}")
         print("Orchestration complete")
 
+    def on_signal(self, payload: dict) -> None:
+        """
+        Callback to handle signals: write to CSV and post to webhook.
+        """
+        csv_file = self.config.get('backtest_output_csv', 'backtest_output.csv')
+        webhook_url = self.config.get('signal_webhook_url')
+        # Ensure CSV has headers
+        file_exists = os.path.isfile(csv_file)
+        with open(csv_file, mode='a', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=["symbol", "timestamp", "signal", "price", "amount"])
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(payload)
+        # Post to webhook if configured
+        if webhook_url:
+            try:
+                requests.post(webhook_url, json=payload, timeout=5).raise_for_status()
+            except Exception as e:
+                self.logger.error(f"Failed posting signal to webhook: {e}")
+
+    def run_live(self) -> None:
+        """
+        Start live WebSocket client and attach signal callback.
+        """
+        ws = WSClient(self.config)
+        ws.set_signal_callback(self.on_signal)
+        self.logger.info("Starting WSClient for live signals...")
+        ws.run_forever()
+
 if __name__ == '__main__':
     config = load_config()
     orch = Orchestrator(config)
+    # For backtest:
     orch.run()
+    # For live signals:
+    orch.run_live()
