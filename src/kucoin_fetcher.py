@@ -42,7 +42,7 @@ def fetch_klines(
     data = response.json().get("data", [])
 
     # Define column names as per KuCoin API spec
-    columns = ["time", "open", "close", "high", "low", "volume", "turnover"]
+    columns = ["time", "open", "high", "low", "close", "volume", "turnover"]
     df = pd.DataFrame(data, columns=columns)
 
     # Ensure correct data types
