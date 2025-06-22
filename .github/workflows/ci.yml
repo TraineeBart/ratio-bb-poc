@@ -45,10 +45,7 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Run tests
-        env:
-          PYTHONPATH: src
-        run: |
-          pytest -q
+        run: pytest -q
 
       - name: Notify on failure via Telegram
         if: failure()
