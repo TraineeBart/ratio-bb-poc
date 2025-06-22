@@ -1,10 +1,9 @@
-
-
 # File: src/kucoin_fetcher.py
 
-from typing import Any
-import requests
 import pandas as pd
+
+from src.client.kucoin_client import KucoinClient
+from src.parser.kucoin_parser import parse_klines
 
 def fetch_klines(
     symbol: str,
@@ -13,47 +12,20 @@ def fetch_klines(
     limit: int = 1000
 ) -> pd.DataFrame:
     """
-    Fetch candlestick (K-line) data from KuCoin.
-
-    Args:
-        symbol: Trading pair symbol, e.g. "THETA-USDT".
-        interval: Time interval for candles, e.g. "5m", "1h".
-        start_ts: Unix timestamp in seconds to start fetching from.
-        limit: Maximum number of candles to retrieve (max 1000).
-
-    Returns:
-        DataFrame with columns ["time","open","high","low","close","volume"].
+    Haal candlestick-data op en geef terug als DataFrame.
     """
-    url = "https://api.kucoin.com/api/v1/market/candles"
-    # Map interval string to seconds granularity
-    interval_mapping = {"1m": 60, "5m": 300, "1h": 3600, "1d": 86400}
-    granularity = interval_mapping.get(interval)
-    params: dict[str, Any] = {
-        "symbol": symbol,
-        "granularity": granularity if granularity is not None else interval,
-        "startAt": start_ts,
-        "limit": limit,
-    }
-    # Perform GET request
-    response = requests.get(url, params=params, timeout=10)
-    response.raise_for_status()
+    client = KucoinClient()
+    raw_data = client.get_candles(symbol, interval, start_ts, limit)
+    candles = parse_klines(raw_data)
 
-    # Parse JSON response; data is list of lists: [time, open, close, high, low, volume, turnover]
-    data = response.json().get("data", [])
-
-    # Define column names as per KuCoin API spec
-    columns = ["time", "open", "high", "low", "close", "volume", "turnover"]
-    df = pd.DataFrame(data, columns=columns)
-
-    # Ensure correct data types
+    # Converteer list van dataclasses naar DataFrame
+    df = pd.DataFrame([c.__dict__ for c in candles])
     df = df.astype({
         "time": int,
         "open": float,
         "high": float,
         "low": float,
         "close": float,
-        "volume": float,
+        "volume": float
     })
-
-    # Return only the required columns in the desired order
     return df[["time", "open", "high", "low", "close", "volume"]]
