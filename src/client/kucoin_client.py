@@ -4,6 +4,17 @@ import os
 from typing import Any
 import requests
 
+def _interval_to_seconds(interval: str) -> int:
+    unit = interval[-1]
+    value = int(interval[:-1])
+    if unit == 'm':
+        return value * 60
+    if unit == 'h':
+        return value * 3600
+    if unit == 'd':
+        return value * 86400
+    raise ValueError(f"Unknown interval: {interval}")
+
 class KucoinClient:
     """
     KuCoin REST API client voor market-data.
@@ -15,17 +26,10 @@ class KucoinClient:
         api_key: str = None,
         api_secret: str = None,
         api_passphrase: str = None,
-        session: requests.Session = None
     ):
         self.api_key = api_key or os.getenv("KUCOIN_API_KEY")
         self.api_secret = api_secret or os.getenv("KUCOIN_API_SECRET")
         self.api_passphrase = api_passphrase or os.getenv("KUCOIN_API_PASSPHRASE")
-
-        self.session = session or requests.Session()
-        self.session.headers.update({
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        })
 
     def get_candles(
         self,
@@ -37,13 +41,14 @@ class KucoinClient:
         """
         Haal ruwe kline-data (candles) op als JSON-list.
         """
+        granularity = _interval_to_seconds(interval)
         url = f"{self.BASE_URL}/api/v1/market/candles"
         params = {
             "symbol": symbol,
-            "type": interval,
+            "granularity": granularity,
             "startAt": start_ts,
             "limit": limit
         }
-        resp = self.session.get(url, params=params, timeout=10)
+        resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json().get("data", [])
