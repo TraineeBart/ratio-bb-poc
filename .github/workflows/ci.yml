@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ENV: CI      # zorgt dat load_config de test-data paden pakt
+      PYTHONPATH: ./src
 
     strategy:
       matrix:
@@ -43,9 +44,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$(pwd)/src" >> $GITHUB_ENV
 
       - name: Run tests
         run: pytest -q
