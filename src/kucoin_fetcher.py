@@ -25,9 +25,12 @@ def fetch_klines(
         DataFrame with columns ["time","open","high","low","close","volume"].
     """
     url = "https://api.kucoin.com/api/v1/market/candles"
+    # Map interval string to seconds granularity
+    interval_mapping = {"1m": 60, "5m": 300, "1h": 3600, "1d": 86400}
+    granularity = interval_mapping.get(interval)
     params: dict[str, Any] = {
         "symbol": symbol,
-        "type": interval,
+        "granularity": granularity if granularity is not None else interval,
         "startAt": start_ts,
         "limit": limit,
     }
