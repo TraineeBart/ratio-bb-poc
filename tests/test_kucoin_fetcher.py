@@ -3,7 +3,7 @@ import requests
 from requests.exceptions import HTTPError, Timeout
 import pandas as pd
 
-from src.kucoin_fetcher import fetch_klines
+from kucoin_fetcher import fetch_klines
 
 
 # Fixtures for mock API responses
