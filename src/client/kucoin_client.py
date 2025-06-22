@@ -3,16 +3,25 @@
 import os
 from typing import Any
 import requests
+import re
 
 def _interval_to_seconds(interval: str) -> int:
-    unit = interval[-1]
-    value = int(interval[:-1])
+    """
+    Convert interval string (e.g., "5m", "1h", "2d") to seconds.
+    Valid formats: digits followed by 'm', 'h', or 'd'.
+    """
+    match = re.fullmatch(r"(\d+)([mhd])", interval)
+    if not match:
+        raise ValueError(f"Unknown interval: {interval}")
+    value, unit = match.groups()
+    value = int(value)
     if unit == 'm':
         return value * 60
     if unit == 'h':
         return value * 3600
     if unit == 'd':
         return value * 86400
+    # Fallback
     raise ValueError(f"Unknown interval: {interval}")
 
 class KucoinClient:
