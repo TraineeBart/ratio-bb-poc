@@ -114,10 +114,11 @@ def test_http_error_status_raises(monkeypatch, status_code):
     HTTP 4xx and 5xx status codes should raise HTTPError via raise_for_status().
     """
     def mock_get(url, params=None, timeout=None):
+        sc = status_code
         class MockResponse:
-            status_code = status_code
+            status_code = sc
             def raise_for_status(self):
-                raise HTTPError(f"HTTP {status_code}")
+                raise HTTPError(f"HTTP {sc}")
             def json(self):
                 return {}
         return MockResponse()
