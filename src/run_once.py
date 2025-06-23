@@ -75,14 +75,20 @@ def main():
     df = pd.read_csv(hist_path)
 
     # 3) Strategy initialiseren
-    strat = Strategy(df, cfg)
+    # Pass full config dict; Strategy now reads its own ema_span, nk_thr, vol_thr from config
+    strat = Strategy(
+        df,
+        ema_span=cfg.get('short_ema_span', cfg.get('ema_span', 9)),
+        nk_thr=cfg.get('nk_threshold', 0),
+        vol_thr=cfg.get('volume_threshold', 0)
+    )
 
     # 4) Strategy runnen (bereken filters en EMA’s)
     df_res = strat.run()
 
     # 5) Laatste tick als dict en signaal genereren
     last_tick = df_res.iloc[-1].to_dict()
-    signal = strat.generate_signal(last_tick)
+    signal = strat.generate_signal(pd.DataFrame([last_tick]))['signal'].iloc[0]
 
     # 6) Print alleen het signaal
     # combine tick data and signal
