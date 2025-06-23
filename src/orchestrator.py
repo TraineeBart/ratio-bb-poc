@@ -53,9 +53,12 @@ class Orchestrator:
         Callback to handle signals: write to CSV and post to webhook.
         """
         csv_file = self.config.get('backtest_output_csv', 'tmp/output.csv')
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(csv_file), exist_ok=True)
-        webhook_url = os.getenv('WEBHOOK_URL')
+        # Create parent directory if specified (skip when csv_file is in current dir)
+        dirpath = os.path.dirname(csv_file)
+        if dirpath:
+            os.makedirs(dirpath, exist_ok=True)
+        # Determine webhook URL: env var takes precedence, then config
+        webhook_url = os.getenv('WEBHOOK_URL') or self.config.get('signal_webhook_url')
         # Ensure CSV has headers
         file_exists = os.path.isfile(csv_file)
         with open(csv_file, mode='a', newline='') as f:
