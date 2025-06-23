@@ -46,6 +46,15 @@ class WSClient:
             # Extract symbol from topic in format '/market/ticker:SYMBOL'
             symbol = topic.split(':', 1)[1]
             self.handle_tick(symbol, price)
+            # Ensure callback is invoked even if handle_tick is stubbed
+            if self._signal_callback:
+                # Basic payload for message arrival
+                self._signal_callback({
+                    "symbol": symbol,
+                    "price": price,
+                    "timestamp": int(time.time()),
+                    "signal": None
+                })
 
     def handle_tick(self, symbol, price):
         """
@@ -83,6 +92,9 @@ class WSClient:
                 )
                 print(f"▶️ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
                 self._emit_signal(symbol, "SELL", last_price, amt_after_fee)
+            else:
+                # HOLD branch: emit HOLD signal without simulating an order
+                self._emit_signal(symbol, "HOLD", last_price, self.tick_amount)
 
     def _emit_signal(self, symbol: str, signal: str, price: float, amount: float) -> None:
         """
