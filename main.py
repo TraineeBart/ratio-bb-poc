@@ -1,7 +1,38 @@
-import sys, os
+import sys
+import os
+import csv
+from datetime import datetime
 import requests
 import logging
 from logging.handlers import RotatingFileHandler
+
+def on_signal(payload: dict):
+    webhook_url = os.getenv('WEBHOOK_URL')
+    # 1) Write to CSV
+    output_csv = os.path.join('tmp', 'output.csv')
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    file_exists = os.path.isfile(output_csv)
+    with open(output_csv, mode='a', newline='') as f:
+        writer = csv.DictWriter(f, fieldnames=["timestamp", "symbol", "price", "signal"])
+        if not file_exists:
+            writer.writeheader()
+        # ensure timestamp is ISO format
+        payload["timestamp"] = datetime.utcnow().isoformat()
+        writer.writerow(payload)
+
+    # 2) Post to webhook and log result
+    log_dir = 'logs'
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, 'webhook.log')
+    if webhook_url:
+        try:
+            resp = requests.post(webhook_url, json=payload, timeout=5)
+            resp.raise_for_status()
+            with open(log_file, mode='a') as logf:
+                logf.write(f"{datetime.utcnow().isoformat()} POST {payload}\n")
+        except Exception as e:
+            with open(log_file, mode='a') as logf:
+                logf.write(f"{datetime.utcnow().isoformat()} ERROR {e}\n")
 
 # Logging configuration: rotate logs and set levels before importing ws_client
 log_file_path = os.getenv('LOG_FILE', 'logs/app.log')
@@ -27,29 +58,14 @@ root_logger.addHandler(handler)  # write logs to file as well
 # Allow ws_client module to log at INFO (for BUY/SELL events)
 logging.getLogger('ws_client').setLevel(logging.INFO)
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from developer import load_config
 from ws_client import WSClient
 
 def main():
     print("▶️ In main(): starting WebSocket client")
-    cfg = load_config()
-    webhook_url = cfg.get('webhook_url')
-    # Determine which symbols to subscribe to
-    symbols = cfg.get('symbols', ['THETA-USDT', 'TFUEL-USDT'])
+    symbols = os.getenv('SYMBOLS', 'THETA-USDT,TFUEL-USDT').split(',')
     ws = WSClient(symbols)
-
-    def on_signal(payload: dict):
-        # Log every incoming signal payload
-        logging.getLogger(__name__).info(f"on_signal payload: {payload}")
-        print(f"📣 SIGNAL: {payload}", flush=True)
-        if webhook_url:
-            try:
-                requests.post(webhook_url, json=payload, timeout=5)
-            except Exception as e:
-                logging.getLogger(__name__).error(f"Webhook POST failed: {e}")
-
     ws.set_signal_callback(on_signal)
     ws.run()
 

@@ -15,6 +15,7 @@ services:
         target: /app/logs
         tmpfs:
           size: 52428800
+      - ./tmp:/app/tmp
     # Optioneel: data mount voor historische CSVs
     # - ./data:/app/data
     command: ["python", "main.py"]
