@@ -20,3 +20,4 @@ logs/
 data/*.csv
 # Maar wél je sample-data
 !data/sample-*.csv.coverage
+.coverage
