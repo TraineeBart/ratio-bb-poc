@@ -19,4 +19,4 @@ logs/
 # Grote data-bestanden
 data/*.csv
 # Maar wél je sample-data
-!data/sample-*.csv
+!data/sample-*.csv.coverage
