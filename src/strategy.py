@@ -1,5 +1,45 @@
+# File: src/strategy.py
+
 import pandas as pd
 from developer import load_config
+
+# Compute Bollinger Bands and ratios
+
+def compute_bbands(df: pd.DataFrame, window: int, stddev: float) -> pd.DataFrame:
+    """
+    Bereken voor elke rij in df de Bollinger Bands en ratio's.
+
+    Args:
+        df: DataFrame met ten minste een 'price'-kolom.
+        window: aantal periodes voor het voortschrijdend gemiddelde (SMA).
+        stddev: factor voor de standaarddeviatie (σ).
+
+    Returns:
+        DataFrame met extra kolommen:
+        - 'sma'
+        - 'upper'
+        - 'lower'
+        - 'ratio_lower'
+        - 'ratio_upper'
+    """
+    # Bereken het eenvoudige voortschrijdend gemiddelde (SMA)
+    sma = df['price'].rolling(window).mean()
+    # Bereken de standaarddeviatie over dezelfde window
+    sigma = df['price'].rolling(window).std(ddof=0)
+    # Bepaal de boven- en onderband
+    upper = sma + stddev * sigma
+    lower = sma - stddev * sigma
+    # Ratio's ten opzichte van de bands
+    ratio_lower = df['price'] / lower
+    ratio_upper = df['price'] / upper
+    # Voeg de nieuwe kolommen toe aan een kopie van df en retourneer
+    result = df.copy()
+    result['sma'] = sma
+    result['upper'] = upper
+    result['lower'] = lower
+    result['ratio_lower'] = ratio_lower
+    result['ratio_upper'] = ratio_upper
+    return result
 
 class Strategy:
     def __init__(self, data, config):

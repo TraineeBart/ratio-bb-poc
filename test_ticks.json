@@ -1,0 +1,7 @@
+[
+  { "timestamp": 1624459200, "symbol": "THETA-USDT", "price": 1.00, "volume": 100 },
+  { "timestamp": 1624459260, "symbol": "THETA-USDT", "price": 1.01, "volume": 150 },
+  { "timestamp": 1624459320, "symbol": "THETA-USDT", "price": 1.02, "volume": 120 },
+  { "timestamp": 1624459380, "symbol": "THETA-USDT", "price": 1.05, "volume": 130 },
+  { "timestamp": 1624459440, "symbol": "THETA-USDT", "price": 1.10, "volume": 160 }
+]

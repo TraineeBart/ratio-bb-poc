@@ -4,7 +4,7 @@ import time
 import argparse
 
 # Ensure src modules are on path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ws_client import WSClient
 from developer import load_config
@@ -23,12 +23,17 @@ def replay(symbol, input_csv, delay):
 
     # Read CSV and replay ticks
     with open(input_csv, newline='') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            # Use the 'close' column if present, otherwise fall back to 'price'
-            price = float(row.get('close', row.get('price', 0)))
+        rows = list(csv.DictReader(f))
+        for idx, row in enumerate(rows):
+            # Determine price: prefer non-empty 'close', otherwise use 'price'
+            close_val = row.get('close')
+            if close_val is not None and close_val != '':
+                price = float(close_val)
+            else:
+                price = float(row.get('price', 0))
             ws.handle_tick(symbol, price)
-            if delay and delay > 0:
+            # Sleep only between ticks, not after the last one
+            if delay and delay > 0 and idx < len(rows) - 1:
                 time.sleep(delay)
 
 
