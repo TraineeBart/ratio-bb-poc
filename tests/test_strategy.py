@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import pandas as pd
 import pytest
 from src.strategy import Strategy
+from src.strategy import compute_bbands
 
 @pytest.fixture
 def config():
@@ -59,3 +60,31 @@ def test_generate_signal(sample_data, config, tick, expected_signal):
     strat = Strategy(sample_data.copy(), config)
     sig = strat.generate_signal(tick)
     assert sig == expected_signal
+
+
+# Test for compute_bbands function
+@pytest.mark.parametrize("window,stddev", [
+    (3, 1.0),
+    (4, 2.0),
+])
+def test_compute_bbands(window, stddev):
+    # Create a DataFrame with a simple increasing price series
+    prices = [i for i in range(1, 11)]
+    df = pd.DataFrame({'timestamp': list(range(10)), 'price': prices})
+    # Compute Bollinger Bands
+    bb = compute_bbands(df.copy(), window=window, stddev=stddev)
+    # Should contain required columns
+    for col in ['sma', 'upper', 'lower', 'ratio_lower', 'ratio_upper']:
+        assert col in bb.columns
+    # For indices < window-1, sma and bands are NaN
+    assert bb['sma'].iloc[window-2] != bb['sma'].iloc[window-1]
+    # For index equal window-1, sma equals mean of first 'window' prices
+    expected_sma = sum(prices[:window]) / window
+    assert bb['sma'].iloc[window-1] == pytest.approx(expected_sma)
+    # upper = sma + stddev * std deviation
+    actual_std = pd.Series(prices[:window]).std(ddof=0)
+    expected_upper = expected_sma + stddev * actual_std
+    assert bb['upper'].iloc[window-1] == pytest.approx(expected_upper)
+    # ratio_upper = price / upper band
+    price = prices[window-1]
+    assert bb['ratio_upper'].iloc[window-1] == pytest.approx(price / expected_upper)
