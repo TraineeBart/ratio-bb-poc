@@ -34,8 +34,9 @@ def main():
         else:
             signal = 'HOLD'
         # Build output dict
-        from datetime import datetime, timezone
-        ts = datetime.fromtimestamp(ticks[-1]['timestamp'], tz=timezone.utc).astimezone().isoformat()
+        from datetime import datetime, timezone, timedelta
+        cet = timezone(timedelta(hours=2))
+        ts = datetime.fromtimestamp(ticks[-1]['timestamp'], tz=timezone.utc).astimezone(cet).isoformat()
         # Determine default symbol from config
         cfg_symbols = cfg.get('symbols', [])
         if isinstance(cfg_symbols, str):
