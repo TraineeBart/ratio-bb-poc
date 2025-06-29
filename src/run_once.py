@@ -58,12 +58,11 @@ def main():
             writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
         # 8) Send webhook callback
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
-        if webhook_url:
-            try:
-                req = importlib.import_module('requests')
-                req.post(webhook_url, json=output, timeout=5)
-            except Exception as e:
-                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        try:
+            req = importlib.import_module('requests')
+            req.post(webhook_url, json=output, timeout=5)
+        except Exception as e:
+            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         # Print and exit
         print(json.dumps(output))
         return
@@ -103,12 +102,11 @@ def main():
 
         # Send webhook callback (live mode)
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
-        if webhook_url:
-            try:
-                req = importlib.import_module('requests')
-                req.post(webhook_url, json=output, timeout=5)
-            except Exception as e:
-                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        try:
+            req = importlib.import_module('requests')
+            req.post(webhook_url, json=output, timeout=5)
+        except Exception as e:
+            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         print(json.dumps(output))
 
 if __name__ == '__main__':
