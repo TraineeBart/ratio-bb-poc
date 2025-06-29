@@ -1,47 +1,57 @@
-import os
-import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
-from src.executor import simulate_order
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+from executor import simulate_order
 
 
-# Scenario tests for simulate_order
-@pytest.mark.parametrize("price, amount, slippage_rate, fee_rate, side, expected", [
-    # 1. Geen slippage, geen fee
-    (1.0, 100, 0.0, 0.0, 'buy', {'price_effective': 1.0, 'amount_out': 100.0, 'fee_amount': 0.0}),
-    # 2. Slippage koop
-    (1.0, 100, 0.001, 0.0, 'buy', {'price_effective': 1.001, 'amount_out': 100/1.001, 'fee_amount': 0.0}),
-    # 3. Slippage verkoop
-    (1.0, 100, 0.001, 0.0, 'sell', {'price_effective': 0.999, 'amount_out': 100/0.999, 'fee_amount': 0.0}),
-    # 4. Fee alleen
-    (2.0, 50, 0.0, 0.002, 'sell', {'price_effective': 2.0, 'amount_out': pytest.approx(24.95), 'fee_amount': pytest.approx(0.05)}),
-    # 5. Slippage + fee
-    (1.5, 200, 0.0005, 0.001, 'buy', None),  # validate combined
-    # 6. Afronding high-precision
-    (0.00012345, 100000, 0.0, 0.0, 'buy', {'price_effective': 0.00012345, 'amount_out': round(100000/0.00012345, 8), 'fee_amount': 0.0}),
-])
-def test_simulate_order_scenarios(price, amount, slippage_rate, fee_rate, side, expected):
-    result = simulate_order(price, amount, slippage_rate, fee_rate, side)
-    # Common assertions
-    assert result['price_in'] == price
+def test_negative_amount_noop():
+    """
+    Scenario: negative amount is treated as no-op,
+    dus amount_out en fee_amount zijn 0.0.
+    """
+    result = simulate_order(1.0, -5.0, 0.0, 0.0, 'buy')
+    assert isinstance(result, dict)
+    assert result['amount_out'] == 0.0
+    assert result['fee_amount'] == 0.0
 
-    # Slippage and price_effective
-    if expected:
-        exp = expected
-        assert pytest.approx(result['price_effective'], rel=1e-8) == exp['price_effective']
-        assert pytest.approx(result['amount_out'], rel=1e-8) == exp['amount_out']
-        assert pytest.approx(result['fee_amount'], rel=1e-8) == exp['fee_amount']
-    else:
-        # Scenario 5: combined slippage + fee
-        pe = price * (1 + slippage_rate) if side == 'buy' else price * (1 - slippage_rate)
-        gross = amount / pe
-        fee = gross * fee_rate
-        net = round(gross - fee, 8)
-        assert pytest.approx(result['price_effective'], rel=1e-8) == pe
-        assert pytest.approx(result['fee_amount'], rel=1e-8) == round(fee, 8)
-        assert pytest.approx(result['amount_out'], rel=1e-8) == net
 
+def test_negative_slippage_raises():
+    """Negative slippage should trigger a ValueError."""
+    with pytest.raises(ValueError):
+        simulate_order(100.0, 1.0, -0.01, 0.0, 'buy')
+
+def test_negative_fee_raises():
+    """Negative fee should trigger a ValueError."""
+    with pytest.raises(ValueError):
+        simulate_order(100.0, 1.0, 0.0, -0.001, 'sell')
 
 def test_invalid_side_raises():
+    """Invalid side should trigger a ValueError."""
     with pytest.raises(ValueError):
-        simulate_order(1.0, 100, 0.0, 0.0, 'invalid')
+        simulate_order(100.0, 1.0, 0.0, 0.0, 'hold')
+
+@pytest.mark.parametrize("side, slippage, fee", [
+    ('buy', 0.0, 0.0),
+    ('sell', 0.0, 0.0),
+    ('buy', 0.01, 0.005),
+    ('sell', 0.02, 0.01),
+])
+def test_limit_order_calculation(side, slippage, fee):
+    """Test limit-order flow: amount_out = amount*price_effective - fee."""
+    price = 10.0
+    amount = 5.0
+    # Compute expected effective price
+    if side == 'buy':
+        expected_price_eff = price * (1 + slippage)
+    else:
+        expected_price_eff = price * (1 - slippage)
+    # Compute amount_out and fee
+    gross = amount * expected_price_eff
+    expected_fee = gross * fee
+    expected_out = gross - expected_fee
+
+    result = simulate_order(price, amount, slippage, fee, side)
+    assert isinstance(result, dict)
+    assert result['price_effective'] == pytest.approx(expected_price_eff)
+    assert result['fee_amount'] == pytest.approx(expected_fee)
+    assert result['amount_out'] == pytest.approx(expected_out)

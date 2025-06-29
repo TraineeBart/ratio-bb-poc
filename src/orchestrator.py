@@ -1,13 +1,22 @@
+# File: src/orchestrator.py
+# Description: Orchestrator – schrijft signals naar CSV en verstuurt webhooks met retry-logica
+# Author: Quality-EngineerGPT, 2025-06-29
+
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 import pandas as pd
 import csv
 import requests
+import time
 from developer import load_config
 from strategy import Strategy
 from executor import Execution
 from src.ws_client import WSClient
+
+"""
+Handler voor trading signals: schrijft naar CSV en verstuurt via webhook met retry-mechanisme.
+"""
 
 class Orchestrator:
     def __init__(self, config):
@@ -52,6 +61,9 @@ class Orchestrator:
         """
         Callback to handle signals: write to CSV and post to webhook.
         """
+        signal = payload.get("signal")
+        if signal == "NO_SWAP":
+            return
         csv_file = self.config.get('backtest_output_csv', 'tmp/output.csv')
         # Create parent directory if specified (skip when csv_file is in current dir)
         dirpath = os.path.dirname(csv_file)
@@ -66,12 +78,20 @@ class Orchestrator:
             if not file_exists:
                 writer.writeheader()
             writer.writerow(payload)
-        # Post to webhook if configured
+        # Post to webhook if configured, met retry op fouten
         if webhook_url:
-            try:
-                requests.post(webhook_url, json=payload, timeout=5).raise_for_status()
-            except Exception as e:
-                self.logger.error(f"Failed posting signal to webhook: {e}")
+            backoff = 1
+            for attempt in range(1, 4):
+                try:
+                    resp = requests.post(webhook_url, json=payload, timeout=5)
+                    resp.raise_for_status()
+                    break
+                except Exception as e:
+                    self.logger.error(f"Failed posting signal to webhook: {e}")
+                    if attempt == 3:
+                        break
+                    time.sleep(backoff)
+                    backoff *= 2
 
     def run_live(self) -> None:
         """

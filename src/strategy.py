@@ -1,7 +1,22 @@
 # File: src/strategy.py
 
+# Path: /opt/ratio-bb-poc/src/strategy.py
 import pandas as pd
 from developer import load_config
+
+"""
+Module: Strategy and utility functions for trading signals.
+
+This module provides:
+- compute_bbands: Bollinger Bands calculation.
+- detect_signal: determine swap signals based on band ratios.
+- Strategy class: EMA-based filtering and signal generation.
+
+Responsibilities:
+- compute_bbands: calculate SMA, upper/lower bands, and ratios.
+- detect_signal: simple threshold logic for swap decisions.
+- Strategy: applies filters, computes EMA, and generates simple BUY/SELL/HOLD signals.
+"""
 
 # Compute Bollinger Bands and ratios
 
@@ -47,15 +62,24 @@ class Strategy:
         self.config = config
 
     def apply_filters(self):
+        """
+        Filter data by NK and volume thresholds from config.
+        """
         nk_thr = self.config.get('nk_threshold', 0)
         vol_thr = self.config.get('volume_threshold', 0)
         df = self.data
         return df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
 
     def compute_ema(self, span):
+        """
+        Compute exponential moving average (EMA) of price with given span.
+        """
         return pd.Series(self.data['price'].ewm(span=span, adjust=False).mean(), name=f'ema_{span}')
 
     def run(self):
+        """
+        Apply filters and append EMA column for configured short span.
+        """
         df = self.apply_filters()
         span = self.config.get('short_ema_span', 9)
         df[f'ema_{span}'] = self.compute_ema(span)
@@ -80,6 +104,33 @@ class Strategy:
         if price < ema:
             return 'SELL'
         return 'HOLD'
+
+def detect_signal(latest_row: pd.Series) -> str:
+    """
+    Bepaal het swap-signaal op basis van de laatste Bollinger-ratio’s.
+
+    Args:
+        latest_row: pd.Series met ten minste:
+                    - 'ratio_lower'
+                    - 'ratio_upper'
+
+    Returns:
+        Eén van:
+        - 'SWAP_TFUEL_TO_THETA'  als prijs < lower band (ratio_lower < 1.0)
+        - 'SWAP_THETA_TO_TFUEL'  als prijs > upper band (ratio_upper > 1.0)
+        - 'NO_SWAP'             anders
+    """
+    lower_ratio = latest_row.get('ratio_lower')
+    upper_ratio = latest_row.get('ratio_upper')
+
+    # Als de prijs onder de onderste band is, swap van TFUEL naar THETA
+    if lower_ratio is not None and lower_ratio < 1.0:
+        return 'SWAP_TFUEL_TO_THETA'
+    # Als de prijs boven de bovenste band is, swap van THETA naar TFUEL
+    if upper_ratio is not None and upper_ratio > 1.0:
+        return 'SWAP_THETA_TO_TFUEL'
+    # In alle andere gevallen geen swap
+    return 'NO_SWAP'
 
 if __name__ == '__main__':
     import argparse
