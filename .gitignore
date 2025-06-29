@@ -17,8 +17,12 @@ logs/
 .idea/
 
 # Grote data-bestanden
-/data/
+data/*.csv
+data/
 
-# Maar wél je sample-data en historische data
-!/data/sample-*.csv
-!/data/historical.csv
+# Maar wél je sample-data (houd je echte sample-bestanden)
+!data/sample-*.csv
+
+# Wél historische data én de map zelf
+!data/
+!data/historical.csv
