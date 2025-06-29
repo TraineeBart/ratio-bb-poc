@@ -7,6 +7,7 @@ from requests.exceptions import HTTPError, Timeout
 import pandas as pd
 
 from src.kucoin_fetcher import fetch_klines
+from src.client.kucoin_client import KucoinClientError
 
 
 # Fixtures for mock API responses
@@ -136,7 +137,7 @@ def test_timeout_exception_propagates(monkeypatch):
     Simulate a Timeout exception from requests.get and ensure it's propagated.
     """
     monkeypatch.setattr(requests, 'get', lambda *args, **kwargs: (_ for _ in ()).throw(Timeout()))
-    with pytest.raises(Timeout):
+    with pytest.raises(KucoinClientError):
         fetch_klines("THETA-USDT", "1m", 1622505600000)
 
 

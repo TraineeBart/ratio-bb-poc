@@ -99,7 +99,14 @@ def main():
             writer.writerow(['timestamp', 'symbol', 'price', 'signal'])
         writer.writerow([output.get('timestamp'), output.get('symbol'), output.get('price'), output.get('signal')])
 
-    print(json.dumps(output))
+        # Send webhook callback (live mode)
+        webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
+        if webhook_url:
+            try:
+                requests.post(webhook_url, json=output, timeout=5)
+            except Exception as e:
+                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        print(json.dumps(output))
 
 if __name__ == '__main__':
     main()
