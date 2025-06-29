@@ -45,6 +45,11 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Ensure data/historical.csv exists
+        run: |
+          mkdir -p data
+          cp acceptance/expected_full_backtest.csv data/historical.csv
+
       - name: Run tests with coverage
         run: |
           pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing
