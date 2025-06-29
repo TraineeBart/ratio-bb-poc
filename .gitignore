@@ -18,10 +18,10 @@ logs/
 
 # Grote data-bestanden
 data/*.csv
-# Maar wél je sample-data
-!data/sample-*.csv.coverage
-.coverage
-# bovenin staat waarschijnlijk iets als:
 data/
-# voeg dit onderaan toe om historical.csv wél mee te nemen
+
+# Maar wél je sample-data (houd je echte sample-bestanden)
+!data/sample-*.csv
+
+# En wél historische data
 !data/historical.csv
