@@ -6,7 +6,7 @@ import csv
 import json
 import argparse
 import sys
-import requests
+import importlib
 
 def main():
     # 0) CLI argument parsing
@@ -60,7 +60,8 @@ def main():
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
         if webhook_url:
             try:
-                requests.post(webhook_url, json=output, timeout=5)
+                req = importlib.import_module('requests')
+                req.post(webhook_url, json=output, timeout=5)
             except Exception as e:
                 print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         # Print and exit
@@ -104,7 +105,8 @@ def main():
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
         if webhook_url:
             try:
-                requests.post(webhook_url, json=output, timeout=5)
+                req = importlib.import_module('requests')
+                req.post(webhook_url, json=output, timeout=5)
             except Exception as e:
                 print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         print(json.dumps(output))
