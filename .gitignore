@@ -17,11 +17,8 @@ logs/
 .idea/
 
 # Grote data-bestanden
-data/*.csv
-data/
+/data/
 
-# Maar wél je sample-data (houd je echte sample-bestanden)
-!data/sample-*.csv
-
-# En wél historische data
-!data/historical.csv
+# Maar wél je sample-data en historische data
+!/data/sample-*.csv
+!/data/historical.csv
