@@ -17,7 +17,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.WARNING)
 
 class WSClient:
-    def __init__(self, symbols):
+    def __init__(self, symbols, callback: Callable[[Dict[str, Any]], None] = None):
         cfg = load_config()
         self.symbols = symbols
         # REST client required by websocket manager
@@ -35,7 +35,7 @@ class WSClient:
         # Initialize strategy with configuration and tick buffer
         self.strat = Strategy(self.tick_buffer, cfg)
         self.tick_amount = cfg.get('tick_amount', 1.0)
-        self._signal_callback: Callable[[Dict[str, Any]], None] = None
+        self._signal_callback = callback
 
     async def _on_message(self, msg):
         # Only process ticker updates
@@ -124,6 +124,12 @@ class WSClient:
     def run(self):
         # print("WSClient.run() called, starting async loop")
         asyncio.get_event_loop().run_until_complete(self._run_async())
+
+    def start(self):
+        """
+        Start the websocket client event loop.
+        """
+        self.run()
 
     def set_signal_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
         """Register a callback to be invoked on BUY/SELL signals."""

@@ -80,7 +80,7 @@ class Strategy:
         """
         Apply filters and append EMA column for configured short span.
         """
-        df = self.apply_filters()
+        df = self.apply_filters().copy()
         span = self.config.get('short_ema_span', 9)
         df[f'ema_{span}'] = self.compute_ema(span)
         return df

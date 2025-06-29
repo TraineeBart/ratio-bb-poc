@@ -70,15 +70,44 @@ def main():
 
     # —— Live-mode override ——
     if os.getenv('MODE') == 'live':
-        # Use WSClient to emit ticks and handle them via its handle_tick logic
-        from ws_client import WSClient
-        # Initialize with symbols from config (or default empty list)
         symbols = cfg.get('symbols') or []
-        # Ensure symbols is a list
         if isinstance(symbols, str):
             symbols = symbols.split(',')
+
+        def _on_tick(tick):
+            # Format timestamp to ISO CET
+            from datetime import datetime, timezone, timedelta
+            cet = timezone(timedelta(hours=2))
+            ts = datetime.fromtimestamp(tick['timestamp'], tz=timezone.utc).astimezone(cet).isoformat()
+            output = {
+                'timestamp': ts,
+                'symbol': tick.get('symbol', ''),
+                'price': tick['price'],
+                'signal': 'HOLD'  # live-mode default or derive as needed
+            }
+            # Write CSV
+            os.makedirs('tmp', exist_ok=True)
+            out_path = os.path.join('tmp', 'output.csv')
+            write_header = not os.path.isfile(out_path)
+            with open(out_path, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                if write_header:
+                    writer.writerow(['timestamp','symbol','price','signal'])
+                writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
+            # Webhook
+            webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
+            try:
+                req = importlib.import_module('requests')
+                req.post(webhook_url, json=output, timeout=5)
+            except Exception as e:
+                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+            # Print
+            print(json.dumps(output))
+
+        from src.ws_client import WSClient
         client = WSClient(symbols)
-        client.run()
+        client.subscribe(_on_tick)
+        client.start()
         return
     # —— End live override ——
 

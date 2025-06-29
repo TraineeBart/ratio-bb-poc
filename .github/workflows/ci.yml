@@ -49,6 +49,11 @@ jobs:
         run: |
           pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing
 
+      # ----------------------------------------------------------------------------
+      # Coverage Gates:
+      # Ensures minimum coverage per critical module. Adjust thresholds here.
+      # To add a new module, insert a `coverage report --include=path/to/file.py --fail-under=<percent>` step.
+      # ----------------------------------------------------------------------------
       - name: "Coverage gate: strategy.py ≥ 90%"
         run: coverage report --include=src/strategy.py --fail-under=90 -m
 

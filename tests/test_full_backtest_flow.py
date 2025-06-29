@@ -43,27 +43,7 @@ def capture_webhook(monkeypatch):
     monkeypatch.setattr(requests, 'post', fake_post)
     return calls
 
-@pytest.fixture
-def stub_ws_client(monkeypatch):
-    """
-    Stub WSClient to emit ticks from test_ticks.json for live mode.
-    """
-    sample_ticks_path = Path(os.getcwd()) / 'test_ticks.json'
-    sample_ticks = json.load(open(sample_ticks_path))
-    import src.ws_client as ws_module
-    class DummyWSClient:
-        def __init__(self, url, callback):
-            self.callback = callback
-        def start(self):
-            for tick in sample_ticks:
-                self.callback(tick)
-        def stop(self):
-            pass
-    # Force live mode (no --replay)
-    monkeypatch.setenv('MODE', 'live')
-    monkeypatch.setattr(ws_module, 'WSClient', DummyWSClient)
-
-def test_full_backtest_flow(clean_tmp, capture_webhook, stub_ws_client, monkeypatch):
+def test_full_backtest_flow(clean_tmp, capture_webhook, monkeypatch):
     """
     End-to-end full backtest (live mode):
       1. Run run_once without --replay
@@ -86,6 +66,7 @@ def test_full_backtest_flow(clean_tmp, capture_webhook, stub_ws_client, monkeypa
 
     # 3) Webhook-validatie
     expected_webhook = project_root / 'acceptance' / 'expected_full_webhook.json'
-    expected_payloads = json.load(open(expected_webhook))
+    with open(expected_webhook, 'r') as f:
+        expected_payloads = json.load(f)
     assert capture_webhook == expected_payloads, \
         f"Webhook payloads matchen niet: {capture_webhook} vs {expected_payloads}"
