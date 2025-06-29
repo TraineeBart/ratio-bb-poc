@@ -78,7 +78,7 @@ def main():
         if isinstance(symbols, str):
             symbols = symbols.split(',')
         client = WSClient(symbols)
-        client.start()
+        client.run()
         return
     # —— End live override ——
 
