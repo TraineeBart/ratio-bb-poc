@@ -68,6 +68,20 @@ def main():
         return
     # —— End replay override ——
 
+    # —— Live-mode override ——
+    if os.getenv('MODE') == 'live':
+        # Use WSClient to emit ticks and handle them via its handle_tick logic
+        from ws_client import WSClient
+        # Initialize with symbols from config (or default empty list)
+        symbols = cfg.get('symbols') or []
+        # Ensure symbols is a list
+        if isinstance(symbols, str):
+            symbols = symbols.split(',')
+        client = WSClient(symbols)
+        client.start()
+        return
+    # —— End live override ——
+
     # 2) Data inlezen: historische CSV (replay is handled above)
     # Load historical data from CSV
     hist_path = cfg.get('historical_csv_path', 'data/historical.csv')
