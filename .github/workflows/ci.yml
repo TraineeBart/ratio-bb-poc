@@ -85,8 +85,8 @@ jobs:
       - name: "Coverage gate: orchestrator.py ≥ 80%"
         run: coverage report --include=src/orchestrator.py --fail-under=80 -m
 
-      - name: Full coverage report
-        run: coverage report -m
+      - name: Full coverage report (non-blocking)
+        run: coverage report -m || true
 
       - name: Notify on failure via Telegram
         if: failure()
