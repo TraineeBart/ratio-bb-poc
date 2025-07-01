@@ -1,3 +1,4 @@
+# DEPRECATED – vervangen door modules in /src/strategies/
 # File: src/strategy.py
 
 # Path: /opt/ratio-bb-poc/src/strategy.py
@@ -73,7 +74,9 @@ class Strategy:
         nk_thr = self.config.get('nk_threshold', 0)
         vol_thr = self.config.get('volume_threshold', 0)
         df = self.data
-        return df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
+        filtered_df = df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
+        print(f"[DEBUG] apply_filters result: {filtered_df.shape}")
+        return filtered_df
 
     def compute_ema(self, span):
         """
@@ -146,6 +149,7 @@ def run_main():
 
     df = pd.read_csv(args.data)
     config = load_config()
+    print(f"[DEBUG] short_ema_span used: {config.get('short_ema_span')}")
     strat = Strategy(df, config)
     result = strat.run()
     result.to_csv(args.output, index=False)

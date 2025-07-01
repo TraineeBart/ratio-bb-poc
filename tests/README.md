@@ -1,5 +1,3 @@
-
-
 # 🧪 Testoverzicht – Ratio BB POC
 
 Dit bestand beschrijft de verschillende testtypes binnen dit project, inclusief waarom bepaalde tests zijn uitgeschakeld en hoe ze in de toekomst weer kunnen worden geactiveerd.
@@ -29,6 +27,7 @@ Deze tests zijn momenteel genegeerd in CI vanwege specifieke issues. Zie issue #
   - De golden files zijn geüpdatet met consistente timezone-timestamps.
   - De CLI-output van `strategy.py` is geharmoniseerd met wat de test verwacht.
   - De `run_once` backtest flow werkt met recente en representatieve data.
+- De `ema_2` test in `test_strategy_main.py` is vervangen door `ema_9`. Dit moet teruggezet worden zodra de definitieve `strategy.py` klaar is. Zie issue #42.
 
 ---
 
