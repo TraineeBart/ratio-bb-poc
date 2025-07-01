@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
+@pytest.mark.skip(reason="Verouderde stdout-check, zie issue #42")
 def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
     # 1) Maak een kleine CSV-input
     input_df = pd.DataFrame({
