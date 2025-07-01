@@ -4,6 +4,7 @@ import runpy
 import pandas as pd
 import pytest
 from pathlib import Path
+import json
 
 def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
     # 1) Maak een kleine CSV-input
@@ -39,8 +40,14 @@ def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
 
     # 6) Controleer stdout JSON-output
     captured = capsys.readouterr()
-    # De script output bevat "Backtest complete"
-    assert "Backtest complete" in captured.out
+    try:
+        payload = json.loads(captured.out)
+    except json.JSONDecodeError:
+        pytest.fail("Stdout bevat geen geldige JSON")
+
+    # Valideer minimaal verwachte keys
+    assert payload.get("signal") == "completed"
+    assert "output_file" in payload
 
     # 7) Controleer dat de output-CSV bestaat en de EMA-kolom bevat
     assert csv_out.exists(), "Output CSV niet aangemaakt"
