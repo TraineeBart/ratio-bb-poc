@@ -21,11 +21,12 @@ def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
 
     # 3) Stub load_config zodat de script een bekende config gebruikt
     import developer
-    monkeypatch.setattr(developer, 'load_config', lambda: {
+    config = {
         'nk_threshold': 0,
         'volume_threshold': 0,
         'short_ema_span': 2
-    })
+    }
+    monkeypatch.setattr(developer, 'load_config', lambda: config)
 
     # 4) Stel sys.argv in voor het script
     monkeypatch.setattr(sys, 'argv', [
@@ -52,12 +53,13 @@ def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
     # 7) Controleer dat de output-CSV bestaat en de EMA-kolom bevat
     assert csv_out.exists(), "Output CSV niet aangemaakt"
     out_df = pd.read_csv(csv_out)
-    assert 'ema_2' in out_df.columns
+    ema_col = f"ema_{config['short_ema_span']}"
+    assert ema_col in out_df.columns
 
     # 8) Verifieer dat de EMA-waarden kloppen
     expected_ema = input_df['price'].ewm(span=2, adjust=False).mean()
     pd.testing.assert_series_equal(
-        out_df['ema_2'].reset_index(drop=True),
+        out_df[ema_col].reset_index(drop=True),
         expected_ema.reset_index(drop=True),
         check_names=False
     )
