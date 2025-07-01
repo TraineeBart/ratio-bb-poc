@@ -5,7 +5,6 @@ import pandas as pd
 import pytest
 from pathlib import Path
 
-@pytest.mark.skip(reason="Verouderde stdout-check, zie issue #42")
 def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
     # 1) Maak een kleine CSV-input
     input_df = pd.DataFrame({
@@ -40,8 +39,8 @@ def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
 
     # 6) Controleer stdout JSON-output
     captured = capsys.readouterr()
-    # De script output bevat een JSON-string met minimaal het signaal
-    assert '"signal"' in captured.out
+    # De script output bevat "Backtest complete"
+    assert "Backtest complete" in captured.out
 
     # 7) Controleer dat de output-CSV bestaat en de EMA-kolom bevat
     assert csv_out.exists(), "Output CSV niet aangemaakt"
