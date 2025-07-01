@@ -132,8 +132,7 @@ def detect_signal(latest_row: pd.Series) -> str:
     # In alle andere gevallen geen swap
     return 'NO_SWAP'
 
-if __name__ == '__main__':
-    import argparse
+def run_main():
     parser = argparse.ArgumentParser(description='Run backtest on historical data')
     parser.add_argument('--data', required=True, help='Path to CSV data')
     parser.add_argument('--output', default='output.csv', help='Output CSV')
@@ -145,3 +144,6 @@ if __name__ == '__main__':
     result = strat.run()
     result.to_csv(args.output, index=False)
     print(f"Backtest complete, saved to {args.output}")
+
+if __name__ == '__main__':
+    run_main()
