@@ -21,6 +21,8 @@ Deze tests zijn momenteel genegeerd in CI vanwege specifieke issues. Zie issue #
 | `test_full_backtest_flow.py`    | Symbol/price mismatch door gebruik van verouderde sample-data          |
 | `test_strategy_main.py`         | Verwacht `"signal"` in stdout, maar huidige implementatie print JSON-object |
 
+⚠️ Let op: sommige uitgeschakelde tests gebruiken legacy-modules zoals `strategy.py`. Deze modules zijn verouderd en worden mogelijk volledig vervangen door nieuwe implementaties in `src/strategies/`. Tijdens een toekomstige code review moet nadrukkelijk worden beoordeeld of deze oude modules en bijbehorende tests definitief verwijderd of gemigreerd moeten worden.
+
 ## 📌 Herinnering
 
 - Deze tests moeten opnieuw worden geactiveerd zodra:
