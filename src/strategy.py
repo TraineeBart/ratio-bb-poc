@@ -1,6 +1,11 @@
 # File: src/strategy.py
 
 # Path: /opt/ratio-bb-poc/src/strategy.py
+# File: src/strategy.py
+
+# Path: /opt/ratio-bb-poc/src/strategy.py
+import argparse
+import json
 import pandas as pd
 from src.developer import load_config
 
@@ -143,7 +148,12 @@ def run_main():
     strat = Strategy(df, config)
     result = strat.run()
     result.to_csv(args.output, index=False)
-    print(f"Backtest complete, saved to {args.output}")
+    output_dict = {
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "output_file": args.output,
+        "signal": "completed"
+    }
+    print(json.dumps(output_dict))
 
 if __name__ == '__main__':
     run_main()
