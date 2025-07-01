@@ -18,11 +18,7 @@ logs/
 
 # Grote data-bestanden
 data/*.csv
-data/
-
-# Maar wél je sample-data (houd je echte sample-bestanden)
+# maar wél je sample-data (houd je echte sample-bestanden)
 !data/sample-*.csv
-
-# Wél historische data én de map zelf
-!data/
+# wél historische data
 !data/historical.csv

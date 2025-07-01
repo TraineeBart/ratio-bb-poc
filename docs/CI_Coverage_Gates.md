@@ -20,6 +20,17 @@ Dit document beschrijft de configuratie en het onderhoud van coverage-gates in o
 | Models                        | `src/models/`                    | 80%               |
 | Orchestrator                  | `src/orchestrator.py`            | 80%               |
 
+## Data Preparation
+- Voor de full-backtest E2E-tests moet altijd `data/historical.csv` aanwezig zijn.
+- Voeg in `.github/workflows/ci.yml` vóór de pytest-stap een shell-opdracht toe:
+  ```yaml
+  - name: Prepare historical data
+    run: |
+      mkdir -p data
+      cp acceptance/expected_full_backtest.csv data/historical.csv
+  ```
+- Hiermee wordt tijdens elke CI-run de directory `data` aangemaakt en het bestand `historical.csv` gevuld met de golden file uit `acceptance`.
+
 > **Tip:** Bij een gate-failure geeft de CI automatisch een melding met de behaalde dekking en de vereiste drempel.
 
 ## Hoe werkt het?

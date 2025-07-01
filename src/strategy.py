@@ -2,7 +2,7 @@
 
 # Path: /opt/ratio-bb-poc/src/strategy.py
 import pandas as pd
-from developer import load_config
+from src.developer import load_config
 
 """
 Module: Strategy and utility functions for trading signals.

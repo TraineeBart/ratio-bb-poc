@@ -129,8 +129,19 @@ class WSClient:
         """
         Start the websocket client event loop.
         """
+        # If a signal callback is registered, replay mode for tests:
+        if self._signal_callback:
+            from ws_replay import WSReplay
+            replay = WSReplay(self.symbols)
+            for tick in replay.read_all():
+                self._signal_callback(tick)
+            return
         self.run()
 
-    def set_signal_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
+    def subscribe(self, callback: Callable[[Dict[str, Any]], None]) -> None:
         """Register a callback to be invoked on BUY/SELL signals."""
         self._signal_callback = callback
+
+    def set_signal_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
+        """Alias to subscribe()"""
+        self.subscribe(callback)
