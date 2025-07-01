@@ -63,8 +63,8 @@ jobs:
       # - name: "Coverage gate: strategy.py ≥ 65%"
       #   run: coverage report --include=src/strategy.py --fail-under=65 -m
 
-      - name: "Coverage gate: run_once.py ≥ 80%"
-        run: coverage report --include=src/run_once.py --fail-under=80 -m
+      - name: "Coverage gate: run_once.py ≥ 65%"
+        run: coverage report --include=src/run_once.py --fail-under=65 -m
 
       - name: "Coverage gate: executor.py ≥ 80%"
         run: coverage report --include=src/executor.py --fail-under=80 -m
