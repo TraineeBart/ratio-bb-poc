@@ -79,7 +79,7 @@ class Strategy:
         """
         Compute exponential moving average (EMA) of price with given span.
         """
-        return pd.Series(self.data['price'].ewm(span=span, adjust=False).mean(), name=f'ema_{span}')
+        return self.data['price'].ewm(span=span, adjust=False).mean()
 
     def run(self):
         """
@@ -87,7 +87,8 @@ class Strategy:
         """
         df = self.apply_filters().copy()
         span = self.config.get('short_ema_span', 9)
-        df[f'ema_{span}'] = self.compute_ema(span)
+        ema = self.compute_ema(span)
+        df[f'ema_{span}'] = ema.loc[df.index]
         return df
 
     def generate_signal(self, tick: dict) -> str:
