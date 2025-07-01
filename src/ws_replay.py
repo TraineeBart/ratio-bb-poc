@@ -2,12 +2,37 @@ import sys, os
 import csv
 import time
 import argparse
+from datetime import datetime
 
 # Ensure src modules are on path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ws_client import WSClient
 from developer import load_config
+
+
+class WSReplay:
+    def __init__(self, symbols):
+        self.symbols = symbols
+        config = load_config()
+        self.historical_csv_path = config.get('historical_csv_path', 'data/historical.csv')
+
+    def read_all(self):
+        with open(self.historical_csv_path, newline='') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ts_str = row['timestamp']
+                try:
+                    ts = int(ts_str)
+                except ValueError:
+                    ts = int(datetime.fromisoformat(ts_str).timestamp())
+                yield {
+                    'timestamp': ts,
+                    'symbol': row.get('symbol'),
+                    'price': float(row['price']),
+                    'volume': float(row.get('volume', 0.0)),
+                    'nk': float(row.get('nk', 0.0))
+                }
 
 
 def replay(symbol, input_csv, delay):

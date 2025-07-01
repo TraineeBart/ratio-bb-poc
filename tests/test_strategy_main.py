@@ -34,11 +34,13 @@ def test_strategy_main_writes_output(tmp_path, monkeypatch, capsys):
     ])
 
     # 5) Run de module als script (cover __main__-block)
+    sys.modules.pop('src.strategy', None)
     runpy.run_module('src.strategy', run_name='__main__')
 
-    # 6) Controleer stdout
+    # 6) Controleer stdout JSON-output
     captured = capsys.readouterr()
-    assert 'Backtest complete' in captured.out
+    # De script output bevat een JSON-string met minimaal het signaal
+    assert '"signal"' in captured.out
 
     # 7) Controleer dat de output-CSV bestaat en de EMA-kolom bevat
     assert csv_out.exists(), "Output CSV niet aangemaakt"

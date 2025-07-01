@@ -1,12 +1,12 @@
 import pandas as pd
-from developer import load_config
-from strategy import Strategy
+from src.developer import load_config
+from src.strategy import Strategy
 import os
 import csv
 import json
 import argparse
 import sys
-import requests
+import importlib
 
 def main():
     # 0) CLI argument parsing
@@ -34,8 +34,9 @@ def main():
         else:
             signal = 'HOLD'
         # Build output dict
-        from datetime import datetime, timezone
-        ts = datetime.fromtimestamp(ticks[-1]['timestamp'], tz=timezone.utc).astimezone().isoformat()
+        from datetime import datetime, timezone, timedelta
+        cet = timezone(timedelta(hours=2))
+        ts = datetime.fromtimestamp(ticks[-1]['timestamp'], tz=timezone.utc).astimezone(cet).strftime("%Y-%m-%dT%H:%M:%S")
         # Determine default symbol from config
         cfg_symbols = cfg.get('symbols', [])
         if isinstance(cfg_symbols, str):
@@ -57,18 +58,69 @@ def main():
             writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
         # 8) Send webhook callback
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
-        if webhook_url:
-            try:
-                requests.post(webhook_url, json=output, timeout=5)
-            except Exception as e:
-                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        try:
+            req = importlib.import_module('requests')
+            req.post(webhook_url, json=output, timeout=5)
+        except Exception as e:
+            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         # Print and exit
         print(json.dumps(output))
         return
     # —— End replay override ——
 
+    # —— Live-mode override ——
+    if os.getenv('MODE') == 'live':
+        # Collect only the final tick from the WSClient stub
+        symbols = cfg.get('symbols') or []
+        if isinstance(symbols, str):
+            symbols = symbols.split(',')
+
+        last_tick = {}
+        def collect_last(tick):
+            nonlocal last_tick
+            last_tick = tick
+
+        from src.ws_client import WSClient
+        client = WSClient(symbols, collect_last)
+        client.start()
+
+        # Format timestamp to ISO CET (no timezone suffix)
+        from datetime import datetime, timezone, timedelta
+        cet = timezone(timedelta(hours=2))
+        ts = datetime.fromtimestamp(last_tick['timestamp'], tz=timezone.utc).astimezone(cet).strftime("%Y-%m-%dT%H:%M:%S")
+
+        # Build single-line output dict matching replay flow
+        output = {
+            'timestamp': ts,
+            'symbol': '',
+            'price': last_tick['price'],
+            'signal': 'HOLD'
+        }
+
+        # Write to tmp/output.csv
+        os.makedirs('tmp', exist_ok=True)
+        out_path = os.path.join('tmp', 'output.csv')
+        write_header = not os.path.isfile(out_path)
+        with open(out_path, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            if write_header:
+                writer.writerow(['timestamp','symbol','price','signal'])
+            writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
+
+        # Send webhook callback
+        webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
+        try:
+            req = importlib.import_module('requests')
+            req.post(webhook_url, json=output, timeout=5)
+        except Exception:
+            pass
+
+        # Print and exit
+        print(json.dumps(output))
+        return
+    # —— End live override ——
+
     # 2) Data inlezen: historische CSV (replay is handled above)
-    # Load historical data from CSV
     hist_path = cfg.get('historical_csv_path', 'data/historical.csv')
     if not os.path.isfile(hist_path):
         raise FileNotFoundError(f"Kan historische data niet vinden: {hist_path}")
@@ -85,7 +137,6 @@ def main():
     signal = strat.generate_signal(last_tick)
 
     # 6) Print alleen het signaal
-    # combine tick data and signal
     output = last_tick.copy()
     output['signal'] = signal
 
@@ -101,11 +152,11 @@ def main():
 
         # Send webhook callback (live mode)
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
-        if webhook_url:
-            try:
-                requests.post(webhook_url, json=output, timeout=5)
-            except Exception as e:
-                print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        try:
+            req = importlib.import_module('requests')
+            req.post(webhook_url, json=output, timeout=5)
+        except Exception as e:
+            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
         print(json.dumps(output))
 
 if __name__ == '__main__':

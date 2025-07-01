@@ -21,3 +21,4 @@ from src.kucoin_fetcher import fetch_klines
 df = fetch_klines("THETA-USDT", "5m", start_ts=1620000000, limit=100)
 print(df.head())
 ```
+
