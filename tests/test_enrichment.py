@@ -15,10 +15,10 @@ from enrichment.enrich import enrich_dataframe
 def test_enrich_dataframe_adds_columns():
     """
     🧠 Functie: test_enrich_dataframe_adds_columns
-    Test of enrich_dataframe de verwachte verrijkte kolommen toevoegt aan een geldig DataFrame.
+    Test of enrich_dataframe de verwachte verrijkte kolommen toevoegt aan een geldig DataFrame met een 'close' kolom.
 
     ▶️ In:
-        - df: minimaal geldige DataFrame met prijs- en volumedata
+        - df: minimaal geldige DataFrame met close- en volumedata
 
     ⏺ Out:
         - verrijkt DataFrame met o.a. 'ema_9', 'sma_rsi', 'rsi', 'signal'
@@ -29,23 +29,23 @@ def test_enrich_dataframe_adds_columns():
     data = {
         "timestamp": ["2025-07-01 10:00:00", "2025-07-01 10:05:00"],
         "symbol": ["theta", "theta"],
-        "price": [0.078, 0.079],
+        "close": [0.078, 0.079],
         "volume": [12000, 15000]
     }
     df = pd.DataFrame(data)
     enriched_df = enrich_dataframe(df)
 
-    expected_columns = {"timestamp", "symbol", "price", "volume", "ema_9", "sma_rsi", "rsi", "signal"}
+    expected_columns = {"timestamp", "symbol", "close", "volume", "ema_9", "sma_rsi", "rsi", "signal"}
     assert expected_columns.issubset(set(enriched_df.columns))
 
 
 def test_enrich_dataframe_missing_price_column():
     """
     🧠 Functie: test_enrich_dataframe_missing_price_column
-    Verifieert dat enrich_dataframe faalt als verplichte kolom 'price' ontbreekt.
+    Verifieert dat enrich_dataframe faalt als verplichte kolom 'close' ontbreekt.
 
     ▶️ In:
-        - df: DataFrame zonder 'price'-kolom
+        - df: DataFrame zonder 'close'-kolom
 
     ⏺ Out:
         - verwacht een KeyError
