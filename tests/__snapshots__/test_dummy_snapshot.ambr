@@ -1,0 +1,6 @@
+# serializer version: 1
+# name: test_dummy_snapshot
+  dict({
+    'key': 'value',
+  })
+# ---

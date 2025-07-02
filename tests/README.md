@@ -10,6 +10,7 @@ Dit bestand beschrijft de verschillende testtypes binnen dit project, inclusief 
 - `test_bb_strategy.py`: valideert signalen op basis van de BB-ratio-strategie.
 - `test_output_writer.py`: controleert het correct wegschrijven van bestanden.
 - `test_enrich.py`: test de berekening van RSI en SMA-indicatoren.
+- `test_theta_5m_snapshot.py`: snapshottest van kolomnamen van de verrijkte 15m dataset van Theta.
 
 ## 🟡 Tijdelijk uitgeschakeld
 
@@ -30,6 +31,7 @@ Deze tests zijn momenteel genegeerd in CI vanwege specifieke issues. Zie issue #
   - De CLI-output van `strategy.py` is geharmoniseerd met wat de test verwacht.
   - De `run_once` backtest flow werkt met recente en representatieve data.
 - De `ema_2` test in `test_strategy_main.py` is vervangen door `ema_9`. Dit moet teruggezet worden zodra de definitieve `strategy.py` klaar is. Zie issue #42.
+- Coverage-checks zijn tijdelijk uitgeschakeld tijdens de migratie naar modulaire structuur. Zodra de modules in `src/` zijn gestabiliseerd, worden de `--cov` en `fail-under` instellingen opnieuw geactiveerd. Zie commit <TODO> voor referentie.
 
 ---
 
