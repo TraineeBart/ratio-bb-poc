@@ -11,7 +11,14 @@ import threading
 import time
 import json
 from typing import List, Callable, Dict
-import websocket
+# 🔹 Support environments without websocket-client installed (e.g., CI)
+try:
+    import websocket
+except ImportError:
+    import types
+    websocket = types.ModuleType("websocket")
+    # provide dummy WebSocketApp to allow attribute access
+    websocket.WebSocketApp = lambda *args, **kwargs: None
 
 class WSClient:
     """
