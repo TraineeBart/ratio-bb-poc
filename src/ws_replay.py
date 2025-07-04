@@ -77,3 +77,110 @@ if __name__ == '__main__':  # pragma: no cover
     _ = load_config()
     print(f"Replaying ticks for {args.symbol} from {args.file} (delay={args.delay}s)")
     replay(args.symbol, args.file, args.delay)
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: src/ws_replay.py                                       │
+# │ Module: ws_replay                                           │
+# │ Doel: Replay client module voor historische tickdata        │
+# │ Auteur: DeveloperGPT                                        │
+# │ Laatste wijziging: 2025-07-04                               │
+# │ Status: stable                                              │
+# ╰──────────────────────────────────────────────────────────────╯
+
+import threading
+import time
+from typing import Callable, Dict
+import pandas as pd
+
+class WSReplay:
+    """
+    Replay client for historical tick data.
+    """
+
+    def __init__(self, csv_path: str, callback: Callable[[Dict], None], speed: float = 1.0):
+        """
+        🧠 Functie: __init__
+        Initialiseer de replay client met CSV-pad, callback en snelheid.
+
+        ▶️ In:
+            - self (WSReplay): instantie
+            - csv_path (str): pad naar CSV-bestand met kolom 'timestamp'
+            - callback (Callable[[Dict], None]): functie voor verwerking van elke tick
+            - speed (float): factor voor vertraging (1.0 = realtime)
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - pandas voor inlezen en sorteren van CSV
+            - threading voor achtergrond-executie
+        """
+        self.csv_path = csv_path
+        self.callback = callback
+        self.speed = speed
+        self._thread = None
+        self._running = False
+
+    def _run(self):
+        """
+        🧠 Functie: _run
+        Speelt ticks af uit het CSV-bestand in timestamp-volgorde.
+
+        ▶️ In:
+            - self (WSReplay): instantie
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - pandas DataFrame iteratie
+            - time.sleep voor vertraging
+        """
+        df = pd.read_csv(self.csv_path, parse_dates=['timestamp'])
+        df = df.sort_values('timestamp')
+        prev_ts = None
+        for _, row in df.iterrows():
+            if not self._running:
+                break
+            ts = row['timestamp']
+            if prev_ts is not None:
+                # 🔹 Bereken delay op basis van snelheid
+                delay = (ts - prev_ts).total_seconds() / self.speed
+                time.sleep(delay)
+            # Roep callback aan met tickdata
+            self.callback(row.to_dict())
+            prev_ts = ts
+
+    def start(self):
+        """
+        🧠 Functie: start
+        Start de replay in een aparte thread.
+
+        ▶️ In:
+            - self (WSReplay): instantie
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - threading.Thread voor achtergrond-executie
+        """
+        # 🔹 Start alleen als niet al lopend
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        """
+        🧠 Functie: stop
+        Stop de replay en wacht op thread beëindiging.
+
+        ▶️ In:
+            - self (WSReplay): instantie
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - thread.join om te wachten tot stop compleet is
+        """
+        self._running = False
+        if self._thread:
+            self._thread.join()
