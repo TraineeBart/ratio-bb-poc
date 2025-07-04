@@ -1,13 +1,25 @@
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: src/run_once.py                                        │
+# │ Module: run_once                                            │
+# │ Doel: Entry-point voor replay- en live-mode uitvoering      │
+# │ Auteur: DeveloperGPT                                        │
+# │ Laatste wijziging: 2025-07-04                               │
+# │ Status: stable                                             │
+# ╰──────────────────────────────────────────────────────────────╯
+
 import pandas as pd
+from datetime import datetime, timezone
 from src.developer import load_config
 from src.strategy import Strategy
 from src.utils.timezone import format_cet_ts
+from src.utils.candles import CandleAggregator
 import os
 import csv
 import json
 import argparse
 import sys
 import importlib
+import time
 
 def main():
     # 0) CLI argument parsing
@@ -69,51 +81,83 @@ def main():
 
     # —— Live-mode override ——
     if os.getenv('MODE') == 'live':
-        # Collect only the final tick from the WSClient stub
+        print("ENTERED LIVE MODE OVERRIDE")
+        # Live-mode: per-symbol candle aggregation smoke test
         symbols = cfg.get('symbols') or []
         if isinstance(symbols, str):
             symbols = symbols.split(',')
 
-        last_tick = {}
-        def collect_last(tick):
-            nonlocal last_tick
-            last_tick = tick
-
         from src.ws_client import WSClient
-        client = WSClient(symbols, collect_last)
+
+        # 🔹 Setup per-symbol CandleAggregators with separate logs
+        period = os.getenv('CANDLE_PERIOD', '5T')
+        aggregators = {}
+        os.makedirs(os.path.join(os.getcwd(), 'tmp'), exist_ok=True)
+        for symbol in symbols:
+            log_path = os.path.join(os.getcwd(), 'tmp', f'candles_{symbol}.log')
+            def make_on_candle(sym, path):
+                def on_candle(candle):
+                    # 🔹 Debug: direct console feedback on candle closure
+                    print(f"CANDLE for {sym}: {candle}")
+                    # 🔹 TFUEL-specific debug when TFUEL candle closes
+                    if sym == 'TFUEL-USDT':
+                        print(">>> TFUEL callback entered!")
+                    entry = {
+                        'symbol': sym,
+                        'start_ts': candle['start_ts'].isoformat(),
+                        'open': candle['open'],
+                        'high': candle['high'],
+                        'low': candle['low'],
+                        'close': candle['close'],
+                        'volume': candle['volume']
+                    }
+                    try:
+                        with open(path, 'a') as f:
+                            f.write(json.dumps(entry) + "\n")
+                    except Exception as e:
+                        print(f"Failed to write candle log for {sym}: {e}")
+                return on_candle
+            aggregators[symbol] = CandleAggregator(period=period, on_candle=make_on_candle(symbol, log_path))
+
+        # Callback: route each tick to the correct aggregator by symbol
+        def on_tick(tick):
+            """
+            Callback for each raw tick: route by symbol to its CandleAggregator.
+            """
+            # 🔹 Skip non-message events (welcome/ack)
+            if tick.get('type') != 'message':
+                return
+            # 🔹 Print raw tick
+            print(json.dumps(tick))
+            topic = tick.get('topic', '')
+            parts = topic.split(':', 1)
+            if len(parts) != 2:
+                return
+            sym = parts[1]
+            data = tick.get('data', {})
+            try:
+                # 🔹 Gebruik actuele UTC-arrivaltijd i.p.v. data['time'] voor aggregatie
+                ts = datetime.now(timezone.utc)
+                price = float(data.get('price', 0))
+                volume = float(data.get('size', 0))
+            except Exception as e:
+                print(f"Failed to parse tick for aggregation: {e}")
+                return
+            tick_struct = {'timestamp': ts, 'price': price, 'volume': volume}
+            if sym in aggregators:
+                aggregators[sym].on_tick(tick_struct)
+            else:
+                print(f"No aggregator for symbol {sym}")
+
+        client = WSClient(symbols, on_tick)
         client.start()
 
-        # 🔹 Gebruik helper voor ISO CET-timestamp met offset
-        ts = format_cet_ts(last_tick['timestamp'])
-
-        # Build single-line output dict matching replay flow
-        output = {
-            'timestamp': ts,
-            'symbol': '',
-            'price': last_tick['price'],
-            'signal': 'HOLD'
-        }
-
-        # Write to tmp/output.csv
-        os.makedirs('tmp', exist_ok=True)
-        out_path = os.path.join('tmp', 'output.csv')
-        write_header = not os.path.isfile(out_path)
-        with open(out_path, 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            if write_header:
-                writer.writerow(['timestamp','symbol','price','signal'])
-            writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
-
-        # Send webhook callback
-        webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
+        # Keep running to collect candles; stop after a fixed time or CTRL+C
         try:
-            req = importlib.import_module('requests')
-            req.post(webhook_url, json=output, timeout=5)
-        except Exception:
-            pass
-
-        # Print and exit
-        print(json.dumps(output))
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            client.stop()
         return
     # —— End live override ——
 

@@ -11,6 +11,8 @@ import threading
 import time
 import json
 from typing import List, Callable, Dict
+from src.client.kucoin_client import get_bullet_public
+import uuid
 # 🔹 Support environments without websocket-client installed (e.g., CI)
 try:
     import websocket
@@ -48,7 +50,8 @@ class WSClient:
         self._ws = None
         self._thread = None
         self._running = False
-        self.ws_url = "wss://ws.kucoin.com/endpoint"
+        self.ws_url = "wss://ws-api.kucoin.com/endpoint"
+        self.bullet_token = None
 
     def _on_message(self, ws, message):
         """
@@ -66,8 +69,10 @@ class WSClient:
             - json.loads om bericht te parsen
             - callback functie voor verwerking
         """
+        print(f"WSClient: Received raw message: {message}")
         try:
             data = json.loads(message)
+            print(f"WSClient: Parsed message: {data}")
             self.callback(data)
         except Exception:
             # 🔹 Fout bij parsen of callback, negeren
@@ -123,12 +128,19 @@ class WSClient:
         💡 Gebruikt:
             - Versturen van subscribe bericht met symbolen
         """
-        # 🔹 Stuur subscribe-bericht voor alle symbols
-        subscribe_msg = {
-            "type": "subscribe",
-            "symbols": self.symbols
-        }
-        ws.send(json.dumps(subscribe_msg))
+        print("WSClient: Connected to WebSocket")
+        # 🔹 Stuur subscribe-bericht voor tick data per symbol
+        for symbol in self.symbols:
+            topic = f"/market/ticker:{symbol}"
+            subscribe_msg = {
+                "id": int(time.time()),
+                "type": "subscribe",
+                "topic": topic,
+                "privateChannel": False,
+                "response": True
+            }
+            ws.send(json.dumps(subscribe_msg))
+            print(f"WSClient: Sent subscribe for topic {topic}")
 
     def _run(self):
         """
@@ -145,6 +157,19 @@ class WSClient:
             - time.sleep voor retry delay
         """
         while self._running:
+            # 🔹 Retrieve bullet-public token and endpoint for WebSocket
+            try:
+                token_data = get_bullet_public()
+                endpoint = token_data["endpoint"]
+                token = token_data["token"]
+                # Append token and a unique connectId to the WebSocket URL
+                connect_id = str(uuid.uuid4())
+                self.ws_url = f"{endpoint}?token={token}&connectId={connect_id}"
+                self.bullet_token = token
+                print(f"WSClient: Using WebSocket URL: {self.ws_url}")
+            except Exception as e:
+                print(f"WSClient: Failed to fetch bullet-public token: {e}")
+                raise
             try:
                 self._ws = websocket.WebSocketApp(
                     self.ws_url,
@@ -153,7 +178,10 @@ class WSClient:
                     on_error=self._on_error,
                     on_close=self._on_close
                 )
-                self._ws.run_forever()
+                self._ws.run_forever(
+                    ping_interval=20,   # stuur elke 20s een ping
+                    ping_timeout=10     # wacht maximaal 10s op een pong
+                )
             except Exception:
                 # 🔹 retry na 5 seconden
                 time.sleep(5)
