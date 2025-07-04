@@ -1,3 +1,11 @@
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: src/client/kucoin_client.py                           │
+# │ Module: kucoin_client                                       │
+# │ Doel: KuCoin REST API-client met retry-logica               │
+# │ Auteur: DeveloperGPT                                        │
+# │ Laatste wijziging: 2025-07-04                               │
+# │ Status: stable                                              │
+# ╰──────────────────────────────────────────────────────────────╯
 """
 KucoinClient module with built-in retry logic for resilient HTTP calls.
 Uses exponential back-off (1s, 2s, 4s) and custom KucoinClientError.
@@ -77,6 +85,9 @@ class KucoinClient:
         self.api_key = api_key or os.getenv("KUCOIN_API_KEY")
         self.api_secret = api_secret or os.getenv("KUCOIN_API_SECRET")
         self.api_passphrase = api_passphrase or os.getenv("KUCOIN_API_PASSPHRASE")
+        # 🔹 Config validity check
+        if not all([self.api_key, self.api_secret, self.api_passphrase]):
+            logging.error("Missing one or more KuCoin credentials in environment variables")
 
     @retry_request
     def get_candles(
@@ -100,3 +111,36 @@ class KucoinClient:
         resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
         return resp.json().get("data", [])
+
+
+# Helper: get_bullet_public
+def get_bullet_public() -> dict:
+    """
+    🧠 Functie: get_bullet_public
+    Haalt een publieke bullet token en WebSocket endpoint op van KuCoin.
+
+    ▶️ In:
+        - geen
+    ⏺ Out:
+        - dict: {
+            'endpoint': str,  # WebSocket endpoint URL
+            'token': str      # bullet-public token
+        }
+
+    💡 Gebruikt:
+        - requests voor REST-call
+    """
+    base_url = os.getenv("KUCOIN_API_URL", "https://api.kucoin.com")
+    url = f"{base_url}/api/v1/bullet-public"
+    response = requests.post(url, timeout=10)
+    response.raise_for_status()
+    data = response.json().get("data", {})
+    # Kies de eerste instanceServer
+    servers = data.get("instanceServers", [])
+    if not servers:
+        raise KucoinClientError("No instanceServers returned from bullet-public")
+    server = servers[0]
+    return {
+        "endpoint": server.get("endpoint"),
+        "token": data.get("token")
+    }

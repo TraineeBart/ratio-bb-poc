@@ -1,82 +1,65 @@
-import csv
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: tests/test_ws_replay.py                               │
+# │ Module: test_ws_replay                                      │
+# │ Doel: Unit-tests voor WSReplay (start/stop en callback)    │
+# │ Auteur: DeveloperGPT                                        │
+# │ Laatste wijziging: 2025-07-04                               │
+# │ Status: draft                                               │
+# ╰──────────────────────────────────────────────────────────────╯
+
+import sys
 import time
+import threading
+import pandas as pd
 import pytest
-from pathlib import Path
-from src.ws_replay import replay
+import types
 
-@pytest.fixture(autouse=True)
-def stub_wsclient(monkeypatch):
-    """
-    Stub WSClient zodat we calls naar handle_tick kunnen vangen.
-    """
-    calls = []
-    class DummyWSClient:
-        def __init__(self, symbols):
-            pass
-        def handle_tick(self, symbol, price):
-            calls.append((symbol, price))
-    import src.ws_replay as replay_mod
-    monkeypatch.setattr(replay_mod, 'WSClient', DummyWSClient)
-    return calls
+# Ensure 'ws_replay' module can be imported from src/
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
 
-def make_csv(tmp_path, rows, headers=None):
-    """
-    Schrijf een lijst van dicts naar een CSV-file.
-    """
+from ws_replay import WSReplay
+
+@pytest.fixture
+def tmp_csv(tmp_path):
+    df = pd.DataFrame({
+        'timestamp': pd.date_range("2025-07-04T00:00:00", periods=3, freq="S"),
+        'price': [1.0, 2.0, 3.0],
+        'volume': [10, 20, 30],
+        'nk': [0.1, 0.2, 0.3]
+    })
     path = tmp_path / "ticks.csv"
-    if headers is None:
-        headers = rows[0].keys() if rows else []
-    with open(path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(row)
+    df.to_csv(path, index=False)
     return str(path)
 
-def test_replay_empty(tmp_path, stub_wsclient):
-    # Alleen header, geen data
-    p = tmp_path / "empty.csv"
-    with open(p, 'w', newline='') as f:
-        f.write('timestamp,price,close,volume,nk\n')
-    result = replay('XYZ', str(p), delay=0)
-    assert result is None
-    assert stub_wsclient == []
+def test_wsreplay_start_stop_and_callback(tmp_csv):
+    """
+    🧠 Functie: test_wsreplay_start_stop_and_callback
+    Test dat WSReplay start, ticks afspeelt en ordelijk stopt.
+    
+    ▶️ In:
+        - tmp_csv (str): pad naar tijdelijke CSV
+    ⏺ Out:
+        - None
+    
+    💡 Gebruikt:
+        - pandas voor CSV-generate
+        - threading en time voor replay timing
+    """
+    received = []
+    def cb(data):
+        received.append(data)
 
-def test_replay_single_and_malformed(tmp_path, stub_wsclient):
-    rows = [
-        {'timestamp': '1', 'price': '10.0', 'close': '', 'volume': '100', 'nk': '1'},
-        {'timestamp': '2', 'price': 'bad',  'close': '', 'volume': '',    'nk': ''}
-    ]
-    csv_path = make_csv(tmp_path, rows)
-    result = replay('SYM', csv_path, delay=0)
-    assert stub_wsclient == [('SYM', 10.0)]
+    # Speed hoog zetten zodat delays minimaal zijn
+    replay = WSReplay(csv_path=tmp_csv, callback=cb, speed=1000.0)
+    replay.start()
+    # Wacht kort genoeg om alle ticks af te spelen
+    time.sleep(0.05)
+    replay.stop()
 
-def test_replay_single_close_priority(tmp_path, stub_wsclient):
-    rows = [
-        {'timestamp': '1', 'price': '5.0', 'close': '6.5', 'volume': '10', 'nk': '1'},
-    ]
-    csv_path = make_csv(tmp_path, rows)
-    result = replay('AAA', csv_path, delay=0)
-    assert stub_wsclient == [('AAA', 6.5)]
-
-def test_replay_multiple_and_delay(tmp_path, stub_wsclient, monkeypatch):
-    rows = [
-        {'timestamp': '1', 'price': '1.0', 'close': '',  'volume': '1', 'nk': '1'},
-        {'timestamp': '2', 'price': '2.0', 'close': '',  'volume': '1', 'nk': '1'},
-        {'timestamp': '3', 'price': '3.0', 'close': '',  'volume': '1', 'nk': '1'},
-    ]
-    csv_path = make_csv(tmp_path, rows)
-    sleep_calls = []
-    monkeypatch.setattr(time, 'sleep', lambda s: sleep_calls.append(s))
-    result = replay('BBB', csv_path, delay=0.01)
-    assert stub_wsclient == [('BBB', 1.0), ('BBB', 2.0), ('BBB', 3.0)]
-    assert sleep_calls == [0.01, 0.01]
-
-def test_replay_order_and_stop(tmp_path, stub_wsclient):
-    rows = [
-        {'timestamp': '10', 'price': '10', 'close': '', 'volume': '1', 'nk': '1'},
-        {'timestamp': '20', 'price': '20', 'close': '', 'volume': '1', 'nk': '1'},
-    ]
-    csv_path = make_csv(tmp_path, rows)
-    result = replay('CCC', csv_path, delay=0)
-    assert stub_wsclient == [('CCC', 10.0), ('CCC', 20.0)]
+    # Controleer dat de callback 3 keer is aangeroepen
+    assert len(received) == 3
+    # Controleer dat elk item een dict is met prijs en timestamp
+    assert all(isinstance(item, dict) for item in received)
+    assert replay._running is False
+    assert replay._thread.is_alive() is False

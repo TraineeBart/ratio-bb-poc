@@ -1,61 +1,37 @@
+# ║ File: tests/test_orchestrator.py
+# ║ Module: orchestrator (test)
+# ║ Doel: Test de run_once-functie op correcte verwerking en outputbestand
+# ║ Auteur: QualityEngineerGPT
+# ║ Laatste wijziging: 2025-07-01
+# ║ Status: draft
+
+import sys
+import os
+import pandas as pd
 import pytest
-import os, sys
-import csv
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.orchestrator import Orchestrator
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-class DummyWS:
-    def __init__(self, config):
-        self.callback = None
-    def set_signal_callback(self, cb):
-        self.callback = cb
-    def run_forever(self):
-        # simulate two signals
-        for sig in [
-            {"timestamp":"t1","symbol":"A","price":1,"signal":"BUY"},
-            {"timestamp":"t2","symbol":"B","price":2,"signal":"SELL"}
-        ]:
-            self.callback(sig)
+from orchestrator import run_once
 
-@pytest.fixture(autouse=True)
-def isolate_fs(tmp_path, monkeypatch):
-    # Change working dir to tmp_path
-    monkeypatch.chdir(tmp_path)
-    # Patch WSClient in orchestrator to use DummyWS
-    import src.orchestrator as orchestrator
-    monkeypatch.setattr(orchestrator, "WSClient", DummyWS)
-    yield
+def test_run_once_creates_output(tmp_path):
+    # Maak dummy input CSV
+    input_path = tmp_path / "input.csv"
+    output_path = tmp_path / "output.csv"
 
-def test_run_live_writes_and_posts(monkeypatch, tmp_path):
-    # Stub WEBHOOK_URL env var
-    webhook_calls = []
-    monkeypatch.setenv("WEBHOOK_URL", "https://example.com/hook")
-    # Mock requests.post to capture calls
-    import requests
-    class DummyResponse:
-        def __init__(self, status_code=200):
-            self.status_code = status_code
-        def raise_for_status(self):
-            if self.status_code >= 400:
-                raise requests.HTTPError(f"Status {self.status_code}")
-    def fake_post(url, json=None, timeout=None):
-        webhook_calls.append((url, json))
-        return DummyResponse(200)
-    monkeypatch.setattr(requests, "post", fake_post)
+    df = pd.DataFrame({
+        "timestamp": pd.date_range("2025-01-01", periods=30, freq="5min"),
+        "close": [100 + (i % 10) for i in range(30)]
+    })
+    df.to_csv(input_path, index=False)
 
-    orch = Orchestrator(config={})
-    orch.run_live()
+    # Run de orchestrator
+    run_once(str(input_path), str(output_path))
 
-    # CSV should have two rows
-    csv_file = tmp_path / "tmp" / "output.csv"
-    assert csv_file.exists()
-    with open(csv_file, newline="") as f:
-        rows = list(csv.DictReader(f))
-    assert len(rows) == 2
-    assert rows[0]["symbol"] == "A"
-    assert rows[1]["symbol"] == "B"
+    # Controleer dat outputbestand bestaat
+    assert output_path.exists()
 
-    # Webhook was called twice
-    assert len(webhook_calls) == 2
-    assert webhook_calls[0][0] == "https://example.com/hook"
+    # Controleer dat er signalen zijn
+    result_df = pd.read_csv(output_path)
+    assert "signal" in result_df.columns
+    assert not result_df.empty

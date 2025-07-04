@@ -1,8 +1,14 @@
+# DEPRECATED – vervangen door modules in /src/strategies/
 # File: src/strategy.py
 
 # Path: /opt/ratio-bb-poc/src/strategy.py
+# File: src/strategy.py
+
+# Path: /opt/ratio-bb-poc/src/strategy.py
+import argparse
+import json
 import pandas as pd
-from developer import load_config
+from src.developer import load_config
 
 """
 Module: Strategy and utility functions for trading signals.
@@ -64,25 +70,36 @@ class Strategy:
     def apply_filters(self):
         """
         Filter data by NK and volume thresholds from config.
+
+        Uses .loc[] and .copy() to avoid pandas SettingWithCopyWarning when mutating the returned DataFrame.
         """
         nk_thr = self.config.get('nk_threshold', 0)
         vol_thr = self.config.get('volume_threshold', 0)
         df = self.data
-        return df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
+        # Use .loc and .copy() to avoid SettingWithCopyWarning on subsequent mutations
+        filtered_df = df.loc[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)].copy()
+        print(f"[DEBUG] apply_filters result: {filtered_df.shape}")
+        return filtered_df
 
     def compute_ema(self, span):
         """
         Compute exponential moving average (EMA) of price with given span.
         """
-        return pd.Series(self.data['price'].ewm(span=span, adjust=False).mean(), name=f'ema_{span}')
+        return self.data['price'].ewm(span=span, adjust=False).mean()
 
     def run(self):
         """
         Apply filters and append EMA column for configured short span.
+
+        apply_filters already returns a copy, so no need for an extra .copy().
+        Uses .loc for assignment to avoid chained assignment warnings.
         """
+        # apply_filters already returns a copy, no need for an extra copy
         df = self.apply_filters()
         span = self.config.get('short_ema_span', 9)
-        df[f'ema_{span}'] = self.compute_ema(span)
+        ema = self.compute_ema(span)
+        # Use .loc for assignment to avoid chained assignment warnings
+        df.loc[:, f'ema_{span}'] = ema.loc[df.index]
         return df
 
     def generate_signal(self, tick: dict) -> str:
@@ -132,8 +149,7 @@ def detect_signal(latest_row: pd.Series) -> str:
     # In alle andere gevallen geen swap
     return 'NO_SWAP'
 
-if __name__ == '__main__':
-    import argparse
+def run_main():
     parser = argparse.ArgumentParser(description='Run backtest on historical data')
     parser.add_argument('--data', required=True, help='Path to CSV data')
     parser.add_argument('--output', default='output.csv', help='Output CSV')
@@ -141,7 +157,16 @@ if __name__ == '__main__':
 
     df = pd.read_csv(args.data)
     config = load_config()
+    print(f"[DEBUG] short_ema_span used: {config.get('short_ema_span')}")
     strat = Strategy(df, config)
     result = strat.run()
     result.to_csv(args.output, index=False)
-    print(f"Backtest complete, saved to {args.output}")
+    output_dict = {
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "output_file": args.output,
+        "signal": "completed"
+    }
+    print(json.dumps(output_dict))
+
+if __name__ == '__main__':
+    run_main()

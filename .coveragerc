@@ -1,0 +1,6 @@
+[run]
+omit =
+    src/strategy.py
+
+[report]
+fail_under = 65

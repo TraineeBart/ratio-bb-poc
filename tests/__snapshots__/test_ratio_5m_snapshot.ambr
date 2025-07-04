@@ -1,0 +1,16 @@
+# serializer version: 1
+# name: test_ratio_5m_column_headers_snapshot
+  list([
+    'timestamp',
+    'close',
+    'rsi',
+    'sma_rsi',
+    'sma_9',
+    'sma',
+    'upper_band',
+    'lower_band',
+    'ratio_lower',
+    'ratio_upper',
+    'signal',
+  ])
+# ---
