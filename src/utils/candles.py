@@ -27,6 +27,7 @@ class CandleAggregator:
         self.on_candle = on_candle
         self.freq = pd.Timedelta(period)
         self.current_candle = None  # Dict with open, high, low, close, volume, start_ts
+        self.last_tick_ts = None
         self.current_start = None
 
     def on_tick(self, tick: Dict):
@@ -42,6 +43,7 @@ class CandleAggregator:
             - pandas for timestamp floor
         """
         ts = pd.to_datetime(tick['timestamp'])
+        self.last_tick_ts = ts
         bucket_start = ts.floor(self.period)
 
         # New bucket?
@@ -68,7 +70,7 @@ class CandleAggregator:
             # Start new candle
             self.current_start = bucket_start
             self.current_candle = {
-                'start_ts': bucket_start,
+                'start_ts': self.last_tick_ts,
                 'open': tick['price'],
                 'high': tick['price'],
                 'low': tick['price'],
@@ -81,4 +83,5 @@ class CandleAggregator:
             c['high'] = max(c['high'], tick['price'])
             c['low'] = min(c['low'], tick['price'])
             c['close'] = tick['price']
+            c['start_ts'] = self.last_tick_ts
             c['volume'] += tick['volume']
