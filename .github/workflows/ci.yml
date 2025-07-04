@@ -54,7 +54,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           # Tijdelijk test_backtest_flow.py genegeerd vanwege timezone mismatch (zie issue #42)
-          pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing --ignore=tests/test_backtest_flow.py
+          pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing --ignore=tests/test_backtest_flow.py --snapshot-warn-unused
 
       # ----------------------------------------------------------------------------
       # Coverage Gates:
