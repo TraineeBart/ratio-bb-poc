@@ -46,5 +46,12 @@ pytest -v --cov=src --cov-report=term-missing
 CI-configuratie: `.github/workflows/ci.yml`
 
 ---
+### 💡 Designbeslissing: Alleen `close` als prijsbron
+
+De enrichmentlogica gebruikt standaard de kolom `close` voor alle prijsafhankelijke berekeningen.  
+Andere kolommen (`open`, `high`, `low`) worden genegeerd tenzij expliciet anders gedefinieerd in een strategie.
+
+✅ Hierdoor zijn enrichment, ratio-berekeningen en signal-generatie altijd synchroon qua prijsbron.
+
 
 Laatste update: juli 2025
