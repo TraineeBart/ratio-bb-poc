@@ -1,6 +1,7 @@
 import pandas as pd
 from src.developer import load_config
 from src.strategy import Strategy
+from src.utils.timezone import format_cet_ts
 import os
 import csv
 import json
@@ -33,10 +34,8 @@ def main():
             signal = 'SELL'
         else:
             signal = 'HOLD'
-        # Build output dict
-        from datetime import datetime, timezone, timedelta
-        cet = timezone(timedelta(hours=2))
-        ts = datetime.fromtimestamp(ticks[-1]['timestamp'], tz=timezone.utc).astimezone(cet).strftime("%Y-%m-%dT%H:%M:%S")
+        # 🔹 Gebruik helper voor ISO CET-timestamp met offset
+        ts = format_cet_ts(ticks[-1]['timestamp'])
         # Determine default symbol from config
         cfg_symbols = cfg.get('symbols', [])
         if isinstance(cfg_symbols, str):
@@ -84,10 +83,8 @@ def main():
         client = WSClient(symbols, collect_last)
         client.start()
 
-        # Format timestamp to ISO CET (no timezone suffix)
-        from datetime import datetime, timezone, timedelta
-        cet = timezone(timedelta(hours=2))
-        ts = datetime.fromtimestamp(last_tick['timestamp'], tz=timezone.utc).astimezone(cet).strftime("%Y-%m-%dT%H:%M:%S")
+        # 🔹 Gebruik helper voor ISO CET-timestamp met offset
+        ts = format_cet_ts(last_tick['timestamp'])
 
         # Build single-line output dict matching replay flow
         output = {

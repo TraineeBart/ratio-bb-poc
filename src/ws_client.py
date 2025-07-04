@@ -27,7 +27,7 @@ class WSClient:
     WebSocket client for live tick data.
     """
 
-    def __init__(self, symbols: List[str], callback: Callable[[Dict], None]):
+    def __init__(self, symbols: List[str], callback: Callable[[Dict], None] = None):
         """
         🧠 Functie: __init__
         Initialiseer de WebSocket-client met symbolen en callback.
@@ -43,7 +43,8 @@ class WSClient:
             - Initialisatie van interne variabelen
         """
         self.symbols = symbols
-        self.callback = callback
+        # 🔹 Callback kan optioneel zijn; gebruik noop indien niet meegegeven
+        self.callback = callback if callback is not None else lambda data: None
         self._ws = None
         self._thread = None
         self._running = False
