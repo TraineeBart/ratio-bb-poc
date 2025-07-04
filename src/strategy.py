@@ -70,11 +70,14 @@ class Strategy:
     def apply_filters(self):
         """
         Filter data by NK and volume thresholds from config.
+
+        Uses .loc[] and .copy() to avoid pandas SettingWithCopyWarning when mutating the returned DataFrame.
         """
         nk_thr = self.config.get('nk_threshold', 0)
         vol_thr = self.config.get('volume_threshold', 0)
         df = self.data
-        filtered_df = df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
+        # Use .loc and .copy() to avoid SettingWithCopyWarning on subsequent mutations
+        filtered_df = df.loc[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)].copy()
         print(f"[DEBUG] apply_filters result: {filtered_df.shape}")
         return filtered_df
 
@@ -87,11 +90,16 @@ class Strategy:
     def run(self):
         """
         Apply filters and append EMA column for configured short span.
+
+        apply_filters already returns a copy, so no need for an extra .copy().
+        Uses .loc for assignment to avoid chained assignment warnings.
         """
-        df = self.apply_filters().copy()
+        # apply_filters already returns a copy, no need for an extra copy
+        df = self.apply_filters()
         span = self.config.get('short_ema_span', 9)
         ema = self.compute_ema(span)
-        df[f'ema_{span}'] = ema.loc[df.index]
+        # Use .loc for assignment to avoid chained assignment warnings
+        df.loc[:, f'ema_{span}'] = ema.loc[df.index]
         return df
 
     def generate_signal(self, tick: dict) -> str:
