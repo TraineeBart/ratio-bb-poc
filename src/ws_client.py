@@ -19,6 +19,8 @@ except ImportError:
     websocket = types.ModuleType("websocket")
     # provide dummy WebSocketApp to allow attribute access
     websocket.WebSocketApp = lambda *args, **kwargs: None
+    import sys
+    sys.modules['websocket'] = websocket
 
 class WSClient:
     """
