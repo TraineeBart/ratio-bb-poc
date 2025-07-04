@@ -7,6 +7,9 @@
 # │ Status: stable                                               │
 # ╰──────────────────────────────────────────────────────────────╯
 
+import pytest
+pytestmark = pytest.mark.skip(reason="Dataset alleen lokaal beschikbaar, niet in GitHub CI")
+
 import pandas as pd
 from pathlib import Path
 

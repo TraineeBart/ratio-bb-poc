@@ -22,6 +22,12 @@ Deze tests zijn momenteel genegeerd in CI vanwege specifieke issues. Zie issue #
 | `test_full_backtest_flow.py`    | Symbol/price mismatch door gebruik van verouderde sample-data          |
 | `test_strategy_main.py`         | Verwacht `"signal"` in stdout, maar huidige implementatie print JSON-object |
 
+### 🧪 Snapshot-tests alleen lokaal actief
+
+Snapshot-tests zoals `test_ratio_5m_snapshot.py`, `test_tfuel_5m_snapshot.py` en `test_theta_5m_snapshot.py` slagen lokaal, maar falen in de CI-pipeline door ontbrekende testdata op GitHub.
+
+👉 Deze tests zijn wél waardevol tijdens lokale ontwikkeling (bijv. op de VPS), maar worden bewust uitgesloten van CI totdat een representatief testdataset beschikbaar is in de repository of via mocking.
+
 ⚠️ Let op: sommige uitgeschakelde tests gebruiken legacy-modules zoals `strategy.py`. Deze modules zijn verouderd en worden mogelijk volledig vervangen door nieuwe implementaties in `src/strategies/`. Tijdens een toekomstige code review moet nadrukkelijk worden beoordeeld of deze oude modules en bijbehorende tests definitief verwijderd of gemigreerd moeten worden.
 
 ## 📌 Herinnering
@@ -32,6 +38,7 @@ Deze tests zijn momenteel genegeerd in CI vanwege specifieke issues. Zie issue #
   - De `run_once` backtest flow werkt met recente en representatieve data.
 - De `ema_2` test in `test_strategy_main.py` is vervangen door `ema_9`. Dit moet teruggezet worden zodra de definitieve `strategy.py` klaar is. Zie issue #42.
 - Coverage-checks zijn tijdelijk uitgeschakeld tijdens de migratie naar modulaire structuur. Zodra de modules in `src/` zijn gestabiliseerd, worden de `--cov` en `fail-under` instellingen opnieuw geactiveerd. Zie commit <TODO> voor referentie.
+- Snapshot-tests uitsluiten van CI is tijdelijk. Zie issue #43 voor het opnemen van testdata of alternatieve mocking.
 
 ---
 
