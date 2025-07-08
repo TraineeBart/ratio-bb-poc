@@ -1,5 +1,3 @@
-# File: tests/test_run_once.py
-
 import os
 import sys
 import json
@@ -58,10 +56,14 @@ def test_replay_success(monkeypatch, tmp_path, capsys):
     rows = read_csv('tmp/output.csv')
     assert len(rows) == 1  # single signal at end
     # Check POST called once
-    assert posts and posts[0][0] == 'https://example.com/hook'
+    # Expect default WEBHOOK_URL from config fixture
+    assert posts and posts[0][0] == 'http://localhost:5001/webhook'
     # Check stdout printed JSON of signal
     captured = capsys.readouterr()
-    output = json.loads(captured.out.strip())
+    # Extract JSON output line (ignore debug prints)
+    lines = [l for l in captured.out.splitlines() if l.strip().startswith('{')]
+    assert lines, "No JSON output found in stdout"
+    output = json.loads(lines[-1])
     assert isinstance(output, dict)
     assert output['signal'] in ['BUY','SELL','HOLD']
 
@@ -87,6 +89,42 @@ def test_live_success(monkeypatch, tmp_path, capsys):
         'webhook_url': 'https://example.com/hook'
     }
     monkeypatch.setattr('src.run_once.load_config', lambda: cfg)
+    # Mock the health server bind to avoid port-in-use errors
+    monkeypatch.setattr('src.run_once.start_health_server', lambda port=8000: None)
+    # Mock WSClient to simulate one tick then exit
+    class DummyClient:
+        def __init__(self, symbols, on_tick):
+            self.symbols = symbols
+            self._on_tick = on_tick
+        def start(self):
+            # simulate one tick event
+            tick = {
+                'symbol': self.symbols[0],
+                'price': 1.23,
+                'timestamp': '2025-07-08T00:00:00+00:00',
+                'signal': 'HOLD'
+            }
+            self._on_tick(tick)
+        def stop(self):
+            pass
+    monkeypatch.setattr('src.ws_client.WSClient', DummyClient)
+    # Stub time.sleep: raise KeyboardInterrupt only in the main thread, no-op in background threads
+    import src.run_once as _run_once_mod
+    import threading as _threading
+    def fake_sleep(sec):
+        if _threading.current_thread().name == 'MainThread':
+            raise KeyboardInterrupt()
+        return None
+    monkeypatch.setattr(_run_once_mod.time, 'sleep', fake_sleep)
+    # Stub threading.Thread to prevent any background threads from starting
+    import threading as _threading
+    class DummyThread:
+        def __init__(self, *args, **kwargs):
+            pass
+        def start(self):
+            pass
+    monkeypatch.setattr(_threading, 'Thread', DummyThread)
+    # Patch requests.post
     # Patch requests.post
     posts = []
     monkeypatch.setattr(requests, 'post', lambda url, json=None, timeout=None: type('R', (), {'raise_for_status': lambda s: None})())
@@ -100,6 +138,8 @@ def test_live_success(monkeypatch, tmp_path, capsys):
     assert '"signal"' in out
 
 def test_live_file_not_found(monkeypatch):
+    # Ensure live-mode override is disabled to test historical branch
+    monkeypatch.delenv('MODE', raising=False)
     # Config points to missing file
     cfg = {'historical_csv_path': 'missing.csv'}
     monkeypatch.setattr('src.run_once.load_config', lambda: cfg)

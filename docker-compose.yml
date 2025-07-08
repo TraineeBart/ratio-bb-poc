@@ -9,7 +9,11 @@ services:
       - .env
     environment:
       - ENV=PROD
-      - LOG_LEVEL=INFO
+      - LOG_LEVEL=DEBUG
+      - MODE=live
+      - CANDLE_PERIOD=5T
+    ports:
+      - "8080:8000"
     volumes:
       - type: tmpfs
         target: /app/logs
@@ -18,7 +22,7 @@ services:
       - ./tmp:/app/tmp
     # Optioneel: data mount voor historische CSVs
     # - ./data:/app/data
-    command: ["python", "main.py"]
+    command: ["python", "-m", "src.run_once"]
     logging:
       driver: "json-file"
       options:

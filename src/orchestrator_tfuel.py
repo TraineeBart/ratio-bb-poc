@@ -1,10 +1,11 @@
-# ║ File: src/orchestrator.py
-# ║ Module: orchestrator
-# ║ Doel: Uitvoeren van een volledige analyse-run (load → enrich → strategy → output)
-# ║ Auteur: ArchitectGPT
-# ║ Laatste wijziging: 2025-07-01
-# ║ Status: draft
-
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: src/orchestrator_tfuel.py                             │
+# │ Module: orchestrator_tfuel                                  │
+# │ Doel: Uitvoeren van een volledige analyse-run (load → enrich → strategy → output) │
+# │ Auteur: ArchitectGPT                                        │
+# │ Laatste wijziging: 2025-07-08                               │
+# │ Status: draft                                               │
+# ╰──────────────────────────────────────────────────────────────╯
 import pandas as pd
 from enrichment.enrich import enrich_dataframe
 from strategies.bb_ratio_strategy import apply_strategy

@@ -28,6 +28,12 @@
           <li><code>callback: Callable[[Dict], None]</code> - functie die live tick-data ontvangt</li>
         </ul>
       </li>
+      <li>Methoden:
+        <ul>
+          <li><code>start()</code> - opent de WebSocket en start het ontvangen van live ticks</li>
+          <li><code>stop()</code> - sluit de WebSocket en stopt het ontvangen van ticks</li>
+        </ul>
+      </li>
     </ul>
   </dd>
 </dl>
@@ -40,9 +46,15 @@
         <ul>
           <li><code>csv_path: str</code> - pad naar CSV-bestand met historische tickdata</li>
           <li><code>callback: Callable[[Dict], None]</code> - functie die tick-data ontvangt tijdens replay</li>
+          <li><code>speed: float = 1.0</code> (optioneel) - afspeelsnelheid van de replay (1.0 = realtime)</li>
         </ul>
       </li>
-      <li><code>start()</code> methode speelt ticks af en roept callback aan met tick-gegevens</li>
+      <li>Methoden:
+        <ul>
+          <li><code>start()</code> - speelt ticks af en roept callback aan met tick-gegevens</li>
+          <li><code>stop()</code> - stopt het afspelen van ticks</li>
+        </ul>
+      </li>
     </ul>
   </dd>
 </dl>
@@ -67,19 +79,30 @@ ws_replay.start()  # Speelt tickdata af via callback in timestampvolgorde
 
 > `on_tick` is een callback functie die tick data verwerkt binnen de downstream logica.
 
+### Flowdiagram (Mermaid)
+
+```mermaid
+graph LR
+  A[Init WSClient(symbols, callback)] --> B[start()]
+  B --> C{Modus?}
+  C -->|Live| D[WSClient._run → on_open → on_message → callback]
+  C -->|Replay| E[WSReplay._run → read CSV → tick events → callback]
+  D --> F[heartbeat & reconnect]
+  E --> F
+  F --> G[Downstream: strategy processing]
+```
+
 ---
 
 ## Notities
 
 - Beide modules gebruiken dezelfde callback interface voor downstream verwerking.
-- Het onderscheid tussen live en replay is duidelijk gescheiden in de architectuur.
-- Absolute imports minimaliseren importfouten en verhogen de codekwaliteit.
+- Live- en replay-logica delen dezelfde callback-interface, maar hanteren afzonderlijke implementaties (_run loops).
+- De `speed` parameter in WSReplay regelt de afspeelsnelheid van de replay, waarbij 1.0 realtime betekent.
 
 ---
 
 ## Volgende stappen voor DeveloperGPT
 
-- Implementeer in `ws_client.py` en `ws_replay.py` de beschreven interfaces.
-- Zorg dat alle imports absoluut zijn zoals hierboven beschreven.
-- Wacht op review en definitieve acceptatie van deze architectuur door ProjectManagerGPT.
+- Implementeer in `src/ws_client.py` en `src/ws_replay.py` de beschreven constructor-interfaces, methoden en callback-callbackflow.
 - Start daarna de implementatie van concrete functionaliteit conform dit document.

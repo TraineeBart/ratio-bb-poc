@@ -9,6 +9,9 @@ import argparse
 import json
 import pandas as pd
 from src.developer import load_config
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 """
 Module: Strategy and utility functions for trading signals.
@@ -78,7 +81,6 @@ class Strategy:
         df = self.data
         # Use .loc and .copy() to avoid SettingWithCopyWarning on subsequent mutations
         filtered_df = df.loc[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)].copy()
-        print(f"[DEBUG] apply_filters result: {filtered_df.shape}")
         return filtered_df
 
     def compute_ema(self, span):
@@ -157,14 +159,16 @@ def run_main():
 
     df = pd.read_csv(args.data)
     config = load_config()
-    print(f"[DEBUG] short_ema_span used: {config.get('short_ema_span')}")
     strat = Strategy(df, config)
     result = strat.run()
+    # 🔹 Compute actual signal based on last row
+    from src.strategy import detect_signal  # or relative import if needed
+    last_signal = detect_signal(result.iloc[-1])
     result.to_csv(args.output, index=False)
     output_dict = {
         "timestamp": pd.Timestamp.now().isoformat(),
         "output_file": args.output,
-        "signal": "completed"
+        "signal": last_signal
     }
     print(json.dumps(output_dict))
 

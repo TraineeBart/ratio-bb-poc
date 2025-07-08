@@ -60,14 +60,7 @@ logging.getLogger('ws_client').setLevel(logging.INFO)
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from ws_client import WSClient
-
-def main():
-    print("▶️ In main(): starting WebSocket client")
-    symbols = os.getenv('SYMBOLS', 'THETA-USDT,TFUEL-USDT').split(',')
-    ws = WSClient(symbols)
-    ws.set_signal_callback(on_signal)
-    ws.run()
+from src.run_once import main as run_once_main
 
 if __name__ == '__main__':
-    main()
+    run_once_main()

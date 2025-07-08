@@ -1,0 +1,125 @@
+.
+├── acceptance
+│   ├── expected_backtest.csv
+│   ├── expected_full_backtest.csv
+│   ├── expected_full_webhook.json
+│   └── expected_webhook.json
+├── app.py
+├── config
+│   └── config.yaml
+├── data
+│   ├── backtest_output.csv
+│   ├── historical.csv
+│   ├── sample-tfuel.csv
+│   ├── sample-theta.csv
+│   ├── signals_bb_ratio_5m.csv
+│   ├── signals_bb_tfuel_5m.csv
+│   └── signals_bb_theta_5m.csv
+├── docker-compose.yml
+├── Dockerfile
+├── docs
+│   ├── architecture
+│   ├── CI_Coverage_Gates.md
+│   ├── context.md
+│   ├── iteration_reports
+│   ├── MIGRATION_ROADMAP.md
+│   ├── project_docs_20250707.zip
+│   ├── PROJECT_REFERENCE.md
+│   ├── PROJECT_SPEC.md
+│   ├── roles_overview.md
+│   ├── stories
+│   └── TEMPLATE_FILEHEADER.md
+├── historical.csv
+├── logs
+│   ├── app.log
+│   ├── app.log.1
+│   ├── webhook_full.log
+│   └── webhook.log
+├── main.py
+├── nohup.out
+├── orders
+│   ├── __pycache__
+│   └── test_wrapper.py
+├── poc_snapshot.zip
+├── project_tree.txt
+├── __pycache__
+│   └── main.cpython-310.pyc
+├── pytest.ini
+├── ratio-bb-analysis.zip
+├── ratio-bb-poc.zip
+├── README.md
+├── requirements-dev.txt
+├── requirements.txt
+├── setup.py
+├── src
+│   ├── backtester.py
+│   ├── client
+│   ├── developer.py
+│   ├── enrichment
+│   ├── executor.py
+│   ├── __init__.py
+│   ├── kucoin_client.py
+│   ├── kucoin_fetcher.py
+│   ├── kucoin_test.py
+│   ├── liquidity_helper.py
+│   ├── models
+│   ├── orchestrator.py
+│   ├── orchestrator_ratio.py
+│   ├── orchestrator_theta.py
+│   ├── outputs
+│   ├── parser
+│   ├── __pycache__
+│   ├── ratio_bb_poc.egg-info
+│   ├── run_all.py
+│   ├── run_once.py
+│   ├── strategies
+│   ├── strategy.py
+│   ├── test_ws.py
+│   ├── utils
+│   ├── ws_client.py
+│   └── ws_replay.py
+├── tests
+│   ├── conftest.py
+│   ├── __pycache__
+│   ├── README.md
+│   ├── __snapshots__
+│   ├── test_backtest_flow.py
+│   ├── test_bb_strategy.py
+│   ├── test_candles.py
+│   ├── test_dummy_snapshot.py
+│   ├── test_enrichment.py
+│   ├── test_enrich.py
+│   ├── test_enrich_ratio_15m.py
+│   ├── test_enrich_ratio_60m.py
+│   ├── test_enrich_tfuel_15m.py
+│   ├── test_enrich_tfuel_60m.py
+│   ├── test_enrich_theta_15m.py
+│   ├── test_enrich_theta_60m.py
+│   ├── test_execution.py
+│   ├── test_executor.py
+│   ├── test_full_backtest_flow.py
+│   ├── test_kucoin_client.py
+│   ├── test_kucoin_fetcher.py
+│   ├── test_kucoin_fetcher_wrapper.py
+│   ├── test_kucoin_parser.py
+│   ├── test_liquidity_helper.py
+│   ├── test_main_on_signal.py
+│   ├── test_market_api.py
+│   ├── test_orchestrator.py
+│   ├── test_ratio_5m_snapshot.py
+│   ├── test_run_once.py
+│   ├── test_strategy_main.py
+│   ├── test_strategy.py
+│   ├── test_tfuel_5m_snapshot.py
+│   ├── test_theta_5m_snapshot.py
+│   ├── test_ws_client.py
+│   ├── test_ws_replay_main.py
+│   └── test_ws_replay.py
+├── test_ticks.json
+├── tmp
+│   ├── candles_TFUEL-USDT.log
+│   ├── candles_THETA-USDT.log
+│   └── output.csv
+└── webhook_stub.py
+
+25 directories, 97 files

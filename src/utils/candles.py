@@ -57,6 +57,7 @@ class CandleAggregator:
                 while next_start < bucket_start:
                     empty_candle = {
                         'start_ts': next_start,
+                        'last_ts': next_start,
                         'open': last_close,
                         'high': last_close,
                         'low': last_close,
@@ -66,11 +67,22 @@ class CandleAggregator:
                     self.on_candle(empty_candle)
                     last_close = last_close
                     next_start += self.freq
-                self.on_candle(self.current_candle)
+                # 🔹 Emit real candle using bucket start_ts
+                # 🔹 Ensure start_ts remains the floored bucket start
+                emitted_candle = {
+                    'start_ts': last_start,
+                    'open': self.current_candle['open'],
+                    'high': self.current_candle['high'],
+                    'low': self.current_candle['low'],
+                    'close': self.current_candle['close'],
+                    'volume': self.current_candle['volume'],
+                }
+                self.on_candle(emitted_candle)
             # Start new candle
             self.current_start = bucket_start
             self.current_candle = {
-                'start_ts': self.last_tick_ts,
+                'start_ts': bucket_start,
+                'last_ts': self.last_tick_ts,
                 'open': tick['price'],
                 'high': tick['price'],
                 'low': tick['price'],
@@ -83,5 +95,5 @@ class CandleAggregator:
             c['high'] = max(c['high'], tick['price'])
             c['low'] = min(c['low'], tick['price'])
             c['close'] = tick['price']
-            c['start_ts'] = self.last_tick_ts
+            c['last_ts'] = ts
             c['volume'] += tick['volume']

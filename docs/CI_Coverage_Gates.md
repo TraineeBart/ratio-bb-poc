@@ -31,12 +31,27 @@ Dit document beschrijft de configuratie en het onderhoud van coverage-gates in o
   ```
 - Hiermee wordt tijdens elke CI-run de directory `data` aangemaakt en het bestand `historical.csv` gevuld met de golden file uit `acceptance`.
 
+## Matrix Configuratie Voorbeeld
+Voorbeeld van de `matrix.coverage-gates` sectie in `.github/workflows/ci.yml`:
+```yaml
+strategy:
+  matrix:
+    python-version: [3.9, 3.10, 3.11]
+    coverage-gates:
+      src/strategy.py: 90
+      src/run_once.py: 80
+      src/executor.py: 80
+      src/client/kucoin_client.py: 80
+```
+
 > **Tip:** Bij een gate-failure geeft de CI automatisch een melding met de behaalde dekking en de vereiste drempel.
 
 ## Hoe werkt het?
 1. De CI-pipeline voert `pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing` uit.
 2. Voor elke module in de matrix wordt `coverage report --fail-under=<drempel> --include=<pad>` aangeroepen.
 3. Als een module onder de drempel zit, faalt de build met een duidelijke foutmelding.
+
+Zie canvas "CI_Coverage_Gates" voor detail: canvas-ID 686bdf66097081918c5da016fa6ace6c (zie Canvas Index).
 
 ## Nieuwe module toevoegen
 1. In `.github/workflows/ci.yml` voeg je in de `matrix.coverage-gates` sectie een regel toe met pad en percentage, bijvoorbeeld:
@@ -52,6 +67,49 @@ Dit document beschrijft de configuratie en het onderhoud van coverage-gates in o
    ```
 4. Commit, push en open een PR; de CI valideert automatisch de nieuwe gate.
 
+## Voorbeeld CI Coverage Job
+```yaml
+jobs:
+  coverage:
+    name: Run Coverage Gates
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+        coverage-gates:
+          src/strategy.py: 90
+          src/run_once.py: 80
+          src/executor.py: 80
+          src/client/kucoin_client.py: 80
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests with coverage
+        run: pytest --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing
+      - name: Enforce coverage gate for strategy
+        run: coverage report --fail-under=90 --include=src/strategy.py
+      - name: Enforce coverage gate for run_once
+        run: coverage report --fail-under=80 --include=src/run_once.py
+```
+
 ## Troubleshooting
 - Bekijk in de CI-logs de daadwerkelijke coverage voor het falende module-pad.
 - Voeg extra tests toe of pas de drempel aan om de gate te halen.
+
+## Automatische Notificatie
+- Configureer een Telegram-notificatie in de CI-workflow:
+  ```yaml
+  - name: Notify on coverage gate failure
+    if: failure()
+    uses: appleboy/telegram-action@v0.1.4
+    with:
+      to: ${{ secrets.TELEGRAM_CHAT_ID }}
+      token: ${{ secrets.TELEGRAM_TOKEN }}
+      message: "CI Coverage Gate failure: check coverage report for details."
+  ```
+- Zorg dat de secrets `TELEGRAM_CHAT_ID` en `TELEGRAM_TOKEN` zijn ingesteld in de repository-instellingen.
