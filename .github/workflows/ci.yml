@@ -51,6 +51,12 @@ jobs:
           mkdir -p data
           cp acceptance/expected_full_backtest.csv data/historical.csv
 
+      - name: Audit raw data feed
+        run: |
+          python scripts/audit_feed.py \
+            --paths /opt/tradingbot/data/theta/5m/theta-5m-full.csv \
+                    /opt/tradingbot/data/tfuel/5m/tfuel-5m-full.csv
+
       - name: Run tests with coverage
         run: |
           # Tijdelijk test_backtest_flow.py genegeerd vanwege timezone mismatch (zie issue #42)
