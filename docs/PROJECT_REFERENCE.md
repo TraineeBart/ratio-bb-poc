@@ -19,6 +19,9 @@ Dit document dient als **centrale referentie** voor alle belangrijke projectbest
 | `docs/stories/story4_arch_imports.md`  | Story 4a: Architectuur import- en interface-richtlijnen en resultaten                    | 686be4444444444444444444444444444 |
 | `docs/stories/story4b_replay.md`       | Story 4b: WSReplay CSV-parsing en tests en resultaten                                    | 686be5555555555555555555555555555 |
 | `docs/stories/story5_live_integration.md` | Story 5: Live Data Integratie & Staging en resultaten                                 | 686be6666666666666666666666666666 |
+| `docs/stories/story6_orchestrator_tests.md`    | Story 6: Orchestrator Modules – Unit Tests                                       | 686be7777777777777777777777777777 |
+| `docs/stories/story7_batching_logic.md`        | Story 7: Batching-Logic Module – Implementatie en Tests                          | 686be8888888888888888888888888888 |
+| `docs/stories/story8_executor_integration.md`  | Story 8: Integratie Batching-Logic in Executor (Architectuur & Configuratie)     | 686d02c501388191889161b92354f334  |
 
 ## 2. Missende onderdelen
 

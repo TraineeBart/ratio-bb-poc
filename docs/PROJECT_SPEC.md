@@ -44,7 +44,7 @@ Ontwikkel een betrouwbare Proof of Concept (PoC) voor een geautomatiseerde tradi
 
 1. **apply_filters()**: selecteert rijen op `nk ≥ threshold` en `volume ≥ threshold`; genereert signals.  
 2. **compute_bbands()**: berekent bands en ratio’s.  
-3. **simulate_order()**: splitst grote limit-orders in batches gebaseerd op de gemiddelde 24-uurs liquiditeit (orderboek-grootte) en past fee-berekening toe.  
+3. **simulate_order()**: splitst grote limit-orders in batches gebaseerd op de gemiddelde 24-uurs liquiditeit (berekend uit raw 5m CSV's met volume-kolom) en past slippage- en fee-berekeningen toe per batch.  
 4. **WSClient**: onderhoudt websocket verbinding, herstart na disconnects, stuurt ticks naar callback.  
 5. **WSReplay**: speelt oudere CSV-ticks af met simulatietiming, valideert kolommen.  
 6. **run_once.py**: orkestreert replay- of live-flow, schrijft `tmp/output.csv`, verstuurt webhooks.
@@ -57,9 +57,13 @@ Ontwikkel een betrouwbare Proof of Concept (PoC) voor een geautomatiseerde tradi
 - Coverage: strategie ≥ 90%, overige modules ≥ 80%.  
 - Documentatie en README zijn up-to-date met setup- en usage-instructies.
 
+- Configuratie-parameters `batching.window_hours` en `batching.max_batches` zijn gedefinieerd en effectief.
+
 ## 📅 Roadmap & Iteraties
 
 - **Iteratie 1**: setup projectstructuur, CI, core strategy en replay-tests (afgerond).  
 - **Iteratie 2**: WSClient live/replay synchronisatie, logging, applicatie refactors (afgerond).  
 - **Iteratie 3**: Live-mode integratie & staging validatie (in progress).  
 - **Iteratie 4**: Backfill, metrics & monitoring, hyperparameter-flow (gepland).  
+- **Iteratie 5**: Unit-tests voor orchestrator-modules en helper-output writers (Story 6 afgerond).
+- **Iteratie 6**: Implementatie en tests van batching-logic module (Story 7 afgerond).

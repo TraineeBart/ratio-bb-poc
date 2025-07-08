@@ -62,6 +62,10 @@ jobs:
           # Tijdelijk test_backtest_flow.py genegeerd vanwege timezone mismatch (zie issue #42)
           pytest --maxfail=1 --disable-warnings --cov=src --cov-report=xml:coverage.xml --cov-report=term-missing --ignore=tests/test_backtest_flow.py --snapshot-warn-unused
 
+      - name: Run executor integration tests
+        run: |
+          pytest tests/test_executor_integration.py --maxfail=1 -q
+
       # ----------------------------------------------------------------------------
       # Coverage Gates:
       # Ensures minimum coverage per critical module. Adjust thresholds here.
