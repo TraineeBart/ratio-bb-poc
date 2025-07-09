@@ -174,3 +174,41 @@ def run_main():
 
 if __name__ == '__main__':
     run_main()
+
+
+# Voeg functie toe om tick en candle te combineren en een signaal te berekenen
+def process_tick_with_candle(tick: dict, candle: dict) -> dict:
+    """
+    Combineer tick- en candledata en bereken een eenvoudig signaal.
+
+    Args:
+        tick (dict): Bevat o.a. 'timestamp', 'symbol', 'price'
+        candle (dict): Bevat candle-informatie zoals open, close, high, low, volume
+
+    Returns:
+        dict: Verrijkte tick met eventueel signaalinformatie
+    """
+    # Combineer data
+    combined = tick.copy()
+    combined.update({
+        'open': candle.get('open'),
+        'close': candle.get('close'),
+        'high': candle.get('high'),
+        'low': candle.get('low'),
+        'volume': candle.get('volume'),
+    })
+
+    print("[STRATEGY] Received tick:", tick)
+    # Dummy logic: BUY als prijs > close, SELL als prijs < close
+    price = tick.get('price')
+    close = candle.get('close')
+    if price is None or close is None:
+        combined['signal'] = 'HOLD'
+    elif price > close:
+        combined['signal'] = 'BUY'
+    elif price < close:
+        combined['signal'] = 'SELL'
+    else:
+        combined['signal'] = 'HOLD'
+
+    return combined

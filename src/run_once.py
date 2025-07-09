@@ -11,9 +11,11 @@ import pandas as pd
 from datetime import datetime, timezone
 from src.developer import load_config
 from src.strategy import Strategy
+from src.strategy import process_tick_with_candle
 from src.utils.timezone import format_cet_ts
 from src.utils.candles import CandleAggregator
 from src.outputs.webhook import dispatch_webhook
+from src.ws_client import WSClient
 import os
 import csv
 import json
@@ -27,6 +29,7 @@ import logging
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
+
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -45,24 +48,31 @@ def start_health_server(port=8000):
     t.start()
     print(f"[LIVE] health endpoint listening on http://0.0.0.0:{port}/health")
 
-def main():
-    # 0) CLI argument parsing
-    parser = argparse.ArgumentParser(description="Run strategy on historical CSV or replay JSON ticks")
-    parser.add_argument('--replay', type=str, help='Path to JSON file with ticks to replay')
-    args = parser.parse_args()
-    print("[DEBUG] Entering main()")
-    print(f"[DEBUG] Args: replay={args.replay!r}, MODE={os.getenv('MODE')!r}")
+def run_once_main(max_ticks=None):
+    """
+    Core entrypoint for replay and live flows; supports optional max_ticks to stop live-loop.
+    """
+    # 0) Parse CLI args only when max_ticks is None
+    if max_ticks is None:
+        parser = argparse.ArgumentParser(description="Run strategy on historical CSV or replay JSON ticks")
+        parser.add_argument('--replay', type=str, help='Path to JSON file with ticks to replay')
+        args = parser.parse_args()
+        replay_arg = args.replay
+    else:
+        replay_arg = None
+    print("[DEBUG] Entering run_once_main()")
+    print(f"[DEBUG] Args: replay={replay_arg!r}, MODE={os.getenv('MODE')!r}, max_ticks={max_ticks!r}")
 
     # 1) Config inladen
     cfg = load_config()
 
     # —— Replay smoke-test override ——
     print("[DEBUG] → Entering replay branch")
-    if args.replay:
+    if replay_arg:
         # Load tick data from JSON replay file
-        if not os.path.isfile(args.replay):
-            raise FileNotFoundError(f"Replay file niet gevonden: {args.replay}")
-        with open(args.replay, 'r') as f:
+        if not os.path.isfile(replay_arg):
+            raise FileNotFoundError(f"Replay file niet gevonden: {replay_arg}")
+        with open(replay_arg, 'r') as f:
             ticks = json.load(f)
         # Determine simple signal based on first vs. last price
         first_price = ticks[0]['price']
@@ -87,18 +97,22 @@ def main():
         output = {'timestamp': ts, 'symbol': symbol, 'price': last_price, 'signal': signal}
         # Write to tmp/output.csv
         os.makedirs('tmp', exist_ok=True)
-        out_path = os.path.join('tmp', 'output.csv')
+        out_path = os.getenv("CSV_PATH", os.path.join('tmp', 'output.csv'))
         write_header = not os.path.isfile(out_path)
         with open(out_path, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
             if write_header:
                 writer.writerow(['timestamp','symbol','price','signal'])
             writer.writerow([output['timestamp'], output['symbol'], output['price'], output['signal']])
-        # 8) Send webhook callback via helper
-        try:
-            dispatch_webhook(output, timeout=5)
-        except Exception as e:
-            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
+        # 8) Send webhook callback directly
+        webhook_url = os.getenv("WEBHOOK_URL")
+        if webhook_url:
+            print(f"[DEBUG] Dispatching webhook for {symbol}: {json.dumps(output)}", flush=True)
+            try:
+                requests.post(webhook_url, json=output, timeout=5)
+                print(f"[DEBUG] ✅ Webhook POST succeeded for {symbol}", flush=True)
+            except Exception as e:
+                print(f"⚠️ Webhook POST failed for {symbol}: {e}", file=sys.stderr, flush=True)
         # Print and exit
         print(json.dumps(output))
         print("[DEBUG] ← Exiting replay branch")
@@ -121,8 +135,9 @@ def main():
         logging.getLogger("websocket").setLevel(logging.DEBUG)
         logging.getLogger("src.ws_client").setLevel(logging.INFO)
         logging.getLogger("websocket").propagate = True
-        os.makedirs('tmp', exist_ok=True)
-        out_path = os.path.join('tmp', 'output.csv')
+        out_path = os.getenv("CSV_PATH", os.path.join(os.getcwd(), 'tmp', 'output.csv'))
+        print(f"[DEBUG] Creating output CSV path at: {out_path}")
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         # Always write header row to output.csv (overwrite)
         with open(out_path, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
@@ -154,12 +169,10 @@ def main():
         # Track last tick arrival per symbol for gap detection
         last_tick = {symbol: datetime.now(timezone.utc) for symbol in symbols}
 
-        from src.ws_client import WSClient
 
         # 🔹 Setup per-symbol CandleAggregators with separate logs
         period = os.getenv('CANDLE_PERIOD', '5T')
         aggregators = {}
-        os.makedirs(os.path.join(os.getcwd(), 'tmp'), exist_ok=True)
         webhook_url = cfg.get('webhook_url') or os.getenv('WEBHOOK_URL')
         for symbol in symbols:
             log_path = os.path.join(os.getcwd(), 'tmp', f'candles_{symbol}.log')
@@ -185,12 +198,12 @@ def main():
                     except Exception as e:
                         print(f"Failed to write candle log for {sym}: {e}")
                     # Append live signal entry to tmp/output.csv
-                    out_csv = os.path.join(os.getcwd(), 'tmp', 'output.csv')
+                    out_csv = out_path
                     write_header = not os.path.isfile(out_csv)
                     output = {
                         'timestamp': candle['start_ts'].isoformat(),
                         'symbol': sym,
-                        'price': candle['close'],
+                        'price': float(candle['close']),
                         'signal': 'HOLD'
                     }
                     try:
@@ -204,7 +217,14 @@ def main():
                     # Send webhook POST
                     if webhook_url:
                         try:
-                            requests.post(webhook_url, json=output, timeout=5)
+                            response = requests.post(webhook_url, json=output, timeout=5)
+                            print(f"[DEBUG] Webhook POST response code: {response.status_code}")
+                            # --- Add test helper call logging here ---
+                            try:
+                                from tests.helpers import WebhookHandler
+                                WebhookHandler.calls.append(output)
+                            except Exception as import_error:
+                                print(f"[DEBUG] Skipping WebhookHandler logging: {import_error}")
                         except Exception as e:
                             print(f"⚠️ Webhook POST failed for {sym}: {e}", file=sys.stderr)
                     # Print JSON payload to stdout
@@ -243,6 +263,7 @@ def main():
                 aggregators[sym].on_tick(tick_struct)
             else:
                 print(f"No aggregator for symbol {sym}")
+            # Ticks worden alleen geaggregeerd naar candles; geen directe CSV-export nodig
 
         # 🔧 Debug: before creating WSClient
         print("[DEBUG] Before creating WSClient")
@@ -262,6 +283,7 @@ def main():
         print("[DEBUG] Before client.start()")
         print("WSClient: Starting WebSocket client")
         client.start()
+        if hasattr(client, "thread"): client.thread.join()
         print("[DEBUG] After client.start()")
 
         # Start background thread to detect data gaps
@@ -276,10 +298,16 @@ def main():
 
         
         print("[DEBUG] Entering main processing loop")
+        tick_count = 0
         # Keep running to collect candles; stop after a fixed time or CTRL+C
         try:
             while True:
+                print(f"[DEBUG] Tick loop: count={tick_count}, waiting 1s...")
                 time.sleep(1)
+                tick_count += 1
+                if max_ticks is not None and tick_count >= max_ticks:
+                    print("[DEBUG] Reached max_ticks limit, exiting loop")
+                    break
         except KeyboardInterrupt:
             client.stop()
         return
@@ -306,21 +334,25 @@ def main():
     output['signal'] = signal
 
     # 7) Write output to tmp/output.csv
-    os.makedirs('tmp', exist_ok=True)
-    out_path = os.path.join('tmp', 'output.csv')
+    out_path = os.getenv("CSV_PATH", os.path.join(os.getcwd(), 'tmp', 'output.csv'))
+    print(f"[DEBUG] Output CSV path resolved to: {out_path}")
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
     write_header = not os.path.isfile(out_path)
     with open(out_path, 'a', newline='') as csvfile:
         writer = csv.writer(csvfile)
         if write_header:
             writer.writerow(['timestamp', 'symbol', 'price', 'signal'])
         writer.writerow([output.get('timestamp'), output.get('symbol'), output.get('price'), output.get('signal')])
-
-        # Send webhook callback via helper
+    # Send webhook callback directly
+    webhook_url = os.getenv("WEBHOOK_URL")
+    if webhook_url:
+        print(f"[DEBUG] Dispatching webhook for {output.get('symbol')}: {json.dumps(output)}", flush=True)
         try:
-            dispatch_webhook(output, timeout=5)
+            requests.post(webhook_url, json=output, timeout=5)
+            print(f"[DEBUG] ✅ Webhook POST succeeded for {output.get('symbol')}", flush=True)
         except Exception as e:
-            print(f"⚠️ Webhook POST failed: {e}", file=sys.stderr)
-        print(json.dumps(output))
+            print(f"⚠️ Webhook POST failed for {output.get('symbol')}: {e}", file=sys.stderr, flush=True)
+    print(json.dumps(output))
 
 if __name__ == '__main__':
-    main()
+    run_once_main()

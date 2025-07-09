@@ -224,3 +224,53 @@ class WSClient:
             self._ws.close()
         if self._thread:
             self._thread.join()
+
+
+# --------------- DummyWSClient for testing -----------------
+class DummyWSClient:
+    """
+    Dummy WebSocket client for testing: pushes a fixed number of dummy ticks to callback.
+    """
+    def __init__(self, symbols: List[str], callback: Callable[[Dict], None], max_ticks: int = None, interval: float = 0.0):
+        self.symbols = symbols
+        self._callback = callback
+        self._max_ticks = max_ticks
+        self._interval = interval
+        self._thread = None
+        self._stopped = threading.Event()
+
+    def start(self):
+        def run():
+            count = 0
+            while not self._stopped.is_set():
+                # Build a dummy tick message
+                tick = {
+                    "type": "message",
+                    "topic": f"/market/ticker:{self.symbols[0]}",
+                    "data": {"price": count * 1.0, "size": 1.0}
+                }
+                self._callback(tick)
+                count += 1
+                if self._max_ticks and count >= self._max_ticks:
+                    # Simuleer 1 candle na afloop van ticks
+                    candle = {
+                        "type": "candle",
+                        "symbol": self.symbols[0],
+                        "interval": "1T",
+                        "open": 0.0,
+                        "close": (count - 1) * 1.0,
+                        "high": (count - 1) * 1.0,
+                        "low": 0.0,
+                        "volume": count * 1.0
+                    }
+                    self._callback(candle)
+                    break
+                if self._interval:
+                    time.sleep(self._interval)
+        self._thread = threading.Thread(target=run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stopped.set()
+        if self._thread:
+            self._thread.join()

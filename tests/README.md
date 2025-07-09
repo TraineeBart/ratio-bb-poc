@@ -11,6 +11,7 @@ Dit bestand beschrijft de verschillende testtypes binnen dit project, inclusief 
 - `test_output_writer.py`: controleert het correct wegschrijven van bestanden.
 - `test_enrich.py`: test de berekening van RSI en SMA-indicatoren.
 - `test_theta_5m_snapshot.py`: snapshottest van kolomnamen van de verrijkte 15m dataset van Theta.
+- `test_strategy_csv_flow.py`: valideert of de strategie correcte signalen genereert op basis van tick- en candledata in CSV-vorm.
 
 ## 🟡 Tijdelijk uitgeschakeld
 
@@ -39,6 +40,7 @@ Snapshot-tests zoals `test_ratio_5m_snapshot.py`, `test_tfuel_5m_snapshot.py` en
 - De `ema_2` test in `test_strategy_main.py` is vervangen door `ema_9`. Dit moet teruggezet worden zodra de definitieve `strategy.py` klaar is. Zie issue #42.
 - Coverage-checks zijn tijdelijk uitgeschakeld tijdens de migratie naar modulaire structuur. Zodra de modules in `src/` zijn gestabiliseerd, worden de `--cov` en `fail-under` instellingen opnieuw geactiveerd. Zie commit <TODO> voor referentie.
 - Snapshot-tests uitsluiten van CI is tijdelijk. Zie issue #43 voor het opnemen van testdata of alternatieve mocking.
+- De `test_strategy_csv_flow.py` is toegevoegd als regressietest met vaste tick/candle samples. Houd deze test actueel bij wijzigingen aan `process_tick_with_candle(...)`.
 
 ---
 
@@ -62,3 +64,40 @@ Andere kolommen (`open`, `high`, `low`) worden genegeerd tenzij expliciet anders
 
 
 Laatste update: juli 2025
+
+## End-to-End Live-Flow Tests
+
+To write in-process live-mode tests:
+
+1. **Call `run_once_main(max_ticks=N)`**  
+   - This replaces the old CLI `main()` and stops after `N` ticks.
+   - Example:
+     ```python
+     from src.run_once import run_once_main
+     run_once_main(max_ticks=5)
+     ```
+
+2. **Use `DummyWSClient`**  
+   - The `run_once_main` function references `WSClient`, which you can monkeypatch to `DummyWSClient` to emit controlled ticks.
+   - Example:
+     ```python
+     from src.ws_client import DummyWSClient
+     monkeypatch.setattr("src.run_once.WSClient", lambda symbols, cb: DummyWSClient(symbols, cb, max_ticks=5))
+     ```
+
+3. **Capture webhook calls via `http_server` fixture**  
+   - Import the fixture from `tests/helpers.py`.
+   - The fixture yields the server URL and populates `WebhookHandler.calls` with JSON payloads.
+   - Example:
+     ```python
+     def test_live_flow(http_server, monkeypatch):
+         monkeypatch.setenv("WEBHOOK_URL", http_server)
+         # setup DummyWSClient...
+         run_once_main(max_ticks=5)
+         assert len(WebhookHandler.calls) == 5
+     ```
+
+4. **Run tests**  
+   ```bash
+   pytest tests/test_executor_integration.py tests/test_full_backtest_flow.py --maxfail=1 -q
+   ```
