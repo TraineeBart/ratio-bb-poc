@@ -1,8 +1,17 @@
+# DEPRECATED – vervangen door modules in /src/strategies/
 # File: src/strategy.py
 
 # Path: /opt/ratio-bb-poc/src/strategy.py
+# File: src/strategy.py
+
+# Path: /opt/ratio-bb-poc/src/strategy.py
+import argparse
+import json
 import pandas as pd
-from developer import load_config
+from src.developer import load_config
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 """
 Module: Strategy and utility functions for trading signals.
@@ -64,25 +73,35 @@ class Strategy:
     def apply_filters(self):
         """
         Filter data by NK and volume thresholds from config.
+
+        Uses .loc[] and .copy() to avoid pandas SettingWithCopyWarning when mutating the returned DataFrame.
         """
         nk_thr = self.config.get('nk_threshold', 0)
         vol_thr = self.config.get('volume_threshold', 0)
         df = self.data
-        return df[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)]
+        # Use .loc and .copy() to avoid SettingWithCopyWarning on subsequent mutations
+        filtered_df = df.loc[(df['nk'] >= nk_thr) & (df['volume'] >= vol_thr)].copy()
+        return filtered_df
 
     def compute_ema(self, span):
         """
         Compute exponential moving average (EMA) of price with given span.
         """
-        return pd.Series(self.data['price'].ewm(span=span, adjust=False).mean(), name=f'ema_{span}')
+        return self.data['price'].ewm(span=span, adjust=False).mean()
 
     def run(self):
         """
         Apply filters and append EMA column for configured short span.
+
+        apply_filters already returns a copy, so no need for an extra .copy().
+        Uses .loc for assignment to avoid chained assignment warnings.
         """
+        # apply_filters already returns a copy, no need for an extra copy
         df = self.apply_filters()
         span = self.config.get('short_ema_span', 9)
-        df[f'ema_{span}'] = self.compute_ema(span)
+        ema = self.compute_ema(span)
+        # Use .loc for assignment to avoid chained assignment warnings
+        df.loc[:, f'ema_{span}'] = ema.loc[df.index]
         return df
 
     def generate_signal(self, tick: dict) -> str:
@@ -132,8 +151,7 @@ def detect_signal(latest_row: pd.Series) -> str:
     # In alle andere gevallen geen swap
     return 'NO_SWAP'
 
-if __name__ == '__main__':
-    import argparse
+def run_main():
     parser = argparse.ArgumentParser(description='Run backtest on historical data')
     parser.add_argument('--data', required=True, help='Path to CSV data')
     parser.add_argument('--output', default='output.csv', help='Output CSV')
@@ -143,5 +161,54 @@ if __name__ == '__main__':
     config = load_config()
     strat = Strategy(df, config)
     result = strat.run()
+    # 🔹 Compute actual signal based on last row
+    from src.strategy import detect_signal  # or relative import if needed
+    last_signal = detect_signal(result.iloc[-1])
     result.to_csv(args.output, index=False)
-    print(f"Backtest complete, saved to {args.output}")
+    output_dict = {
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "output_file": args.output,
+        "signal": last_signal
+    }
+    print(json.dumps(output_dict))
+
+if __name__ == '__main__':
+    run_main()
+
+
+# Voeg functie toe om tick en candle te combineren en een signaal te berekenen
+def process_tick_with_candle(tick: dict, candle: dict) -> dict:
+    """
+    Combineer tick- en candledata en bereken een eenvoudig signaal.
+
+    Args:
+        tick (dict): Bevat o.a. 'timestamp', 'symbol', 'price'
+        candle (dict): Bevat candle-informatie zoals open, close, high, low, volume
+
+    Returns:
+        dict: Verrijkte tick met eventueel signaalinformatie
+    """
+    # Combineer data
+    combined = tick.copy()
+    combined.update({
+        'open': candle.get('open'),
+        'close': candle.get('close'),
+        'high': candle.get('high'),
+        'low': candle.get('low'),
+        'volume': candle.get('volume'),
+    })
+
+    print("[STRATEGY] Received tick:", tick)
+    # Dummy logic: BUY als prijs > close, SELL als prijs < close
+    price = tick.get('price')
+    close = candle.get('close')
+    if price is None or close is None:
+        combined['signal'] = 'HOLD'
+    elif price > close:
+        combined['signal'] = 'BUY'
+    elif price < close:
+        combined['signal'] = 'SELL'
+    else:
+        combined['signal'] = 'HOLD'
+
+    return combined

@@ -18,6 +18,7 @@ logs/
 
 # Grote data-bestanden
 data/*.csv
-# Maar wél je sample-data
-!data/sample-*.csv.coverage
-.coverage
+# maar wél je sample-data (houd je echte sample-bestanden)
+!data/sample-*.csv
+# wél historische data
+!data/historical.csv

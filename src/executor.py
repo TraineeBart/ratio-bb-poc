@@ -4,7 +4,9 @@ Executormodule voor orderverwerking en batching.
 
 from typing import List, Any
 from math import ceil
-from liquidity_helper import get_average_liquidity
+from src.liquidity_helper import get_average_liquidity
+from src.batching import compute_batches
+import logging
 
 class Execution:
     def __init__(self, config):
@@ -79,19 +81,9 @@ def simulate_order(
 # --- Batching helpers ---
 def compute_batches(amount: float, symbol: str, window_hours: int) -> List[float]:
     """
-    Splits `amount` into batch sizes based on average liquidity over `window_hours`.
-    Returns a list of batch quantities.
+    (DEPRECATED: use src.batching.compute_batches)
     """
-    if amount <= 0:
-        return []
-
-    avg_liq = get_average_liquidity(symbol, window_hours)
-    if avg_liq <= 0:
-        return [amount]
-
-    batch_count = ceil(amount / avg_liq)
-    base_batch = amount / batch_count
-    return [base_batch for _ in range(batch_count)]
+    raise NotImplementedError("Use src.batching.compute_batches instead.")
 
 def process_order_with_batching(
     price: float,
@@ -100,15 +92,23 @@ def process_order_with_batching(
     fee_rate: float,
     side: str,
     symbol: str,
-    window_hours: int
+    window_hours: int,
+    max_batches: int
 ) -> List[dict]:
     """
     Processes an order by splitting into batches and simulating each batch.
     Returns a list of results from `simulate_order` for each batch.
     """
-    batch_amounts = compute_batches(amount, symbol, window_hours)
+    # Retrieve average liquidity and compute batch sizes
+    avg_liq = get_average_liquidity(symbol, window_hours)
+    batch_amounts = compute_batches(amount, avg_liq, max_batches)
+    if not batch_amounts:
+        logging.warning(f"No batches computed for {symbol}, amount {amount}; executing single batch")
+        batch_amounts = [amount]
     results = []
-    for batch_amount in batch_amounts:
+    for idx, batch_amount in enumerate(batch_amounts, start=1):
+        # Log batch execution
+        logging.info(f"Executing batch {idx}/{len(batch_amounts)}: amount={batch_amount}")
         result = simulate_order(price, batch_amount, slippage_rate, fee_rate, side)
         results.append(result)
     return results

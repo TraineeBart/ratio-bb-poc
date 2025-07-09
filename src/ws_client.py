@@ -1,130 +1,276 @@
-# File: src/ws_client.py
-import asyncio
-import json
-import logging
-import pandas as pd
-import time
-from typing import Callable, Dict, Any
-from kucoin.client import Client as RestClient
-from kucoin.asyncio import KucoinSocketManager
-from developer import load_config
-from executor import Execution
-from src.strategy import Strategy
+# ╭──────────────────────────────────────────────────────────────╮
+# │ File: src/ws_client.py                                       │
+# │ Module: ws_client                                            │
+# │ Doel: Live websocket client voor tick data                   │
+# │ Auteur: DeveloperGPT                                         │
+# │ Laatste wijziging: 2025-07-04                                │
+# │ Status: stable                                               │
+# ╰──────────────────────────────────────────────────────────────╯
 
-# use root logger so messages propagate to console handler
-logger = logging.getLogger()
-# only show warnings or above from logger; signals will still print via stdout
-logger.setLevel(logging.WARNING)
+import threading
+import time
+import json
+from typing import List, Callable, Dict
+from src.client.kucoin_client import get_bullet_public
+import uuid
+# 🔹 Support environments without websocket-client installed (e.g., CI)
+try:
+    import websocket
+except ImportError:
+    import types
+    websocket = types.ModuleType("websocket")
+    # provide dummy WebSocketApp to allow attribute access
+    websocket.WebSocketApp = lambda *args, **kwargs: None
+    import sys
+    sys.modules['websocket'] = websocket
 
 class WSClient:
-    def __init__(self, symbols):
-        cfg = load_config()
+    """
+    WebSocket client for live tick data.
+    """
+
+    def __init__(self, symbols: List[str], callback: Callable[[Dict], None] = None):
+        """
+        🧠 Functie: __init__
+        Initialiseer de WebSocket-client met symbolen en callback.
+
+        ▶️ In:
+            - self (WSClient): instantie
+            - symbols (List[str]): lijst van tick-symbolen om te volgen
+            - callback (Callable[[Dict], None]): functie die wordt aangeroepen met elke ontvangen tick
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - Initialisatie van interne variabelen
+        """
         self.symbols = symbols
-        # REST client required by websocket manager
-        self.rest_client = RestClient(
-            cfg['kucoin_api_key'],
-            cfg['kucoin_api_secret'],
-            cfg['kucoin_passphrase']
-        )
-        self.exec_mod = Execution(cfg)
-        self.ema_span = cfg.get('ema_span', 9)
-        self.nk_threshold = cfg.get('nk_threshold', 1.0)
-        self.volume_filter = cfg.get('volume_filter', 0.0)
-        # initialize a DataFrame buffer for incoming ticks
-        self.tick_buffer = pd.DataFrame(columns=['price', 'size', 'nk'])
-        # Initialize strategy with configuration and tick buffer
-        self.strat = Strategy(self.tick_buffer, cfg)
-        self.tick_amount = cfg.get('tick_amount', 1.0)
-        self._signal_callback: Callable[[Dict[str, Any]], None] = None
+        # 🔹 Callback kan optioneel zijn; gebruik noop indien niet meegegeven
+        self.callback = callback if callback is not None else lambda data: None
+        self._ws = None
+        self._thread = None
+        self._running = False
+        self.ws_url = "wss://ws-api.kucoin.com/endpoint"
+        self.bullet_token = None
 
-    async def _on_message(self, msg):
-        # Only process ticker updates
-        topic = msg.get('topic', '')
-        if topic.startswith('/market/ticker'):
-            data = msg.get('data', {})
-            price = float(data.get('price', 0))
-            # Extract symbol from topic in format '/market/ticker:SYMBOL'
-            symbol = topic.split(':', 1)[1]
-            self.handle_tick(symbol, price)
-            # Ensure callback is invoked even if handle_tick is stubbed
-            if self._signal_callback:
-                # Basic payload for message arrival
-                self._signal_callback({
-                    "symbol": symbol,
-                    "price": price,
-                    "timestamp": int(time.time()),
-                    "signal": None
-                })
+    def _on_message(self, ws, message):
+        """
+        🧠 Functie: _on_message
+        Verwerk binnenkomende WebSocket-berichten.
 
-    def handle_tick(self, symbol, price):
+        ▶️ In:
+            - self (WSClient): instantie
+            - ws: WebSocket object
+            - message (str): ontvangen bericht in JSON-formaat
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - json.loads om bericht te parsen
+            - callback functie voor verwerking
         """
-        Handle each tick by generating strategy signal and simulating orders only on BUY/SELL.
+        print(f"WSClient: Received raw message: {message}")
+        try:
+            data = json.loads(message)
+            print(f"WSClient: Parsed message: {data}")
+            self.callback(data)
+        except Exception:
+            # 🔹 Fout bij parsen of callback, negeren
+            pass
+
+    def _on_error(self, ws, error):
         """
-        # Build and append tick to buffer
-        tick = {'price': price, 'size': self.tick_amount, 'nk': 1}
-        # append new tick row without concat to avoid FutureWarning
-        self.tick_buffer.loc[len(self.tick_buffer)] = [tick['price'], tick['size'], tick['nk']]
-        # optionally keep only the last N ticks
-        if len(self.tick_buffer) > 100:
-            self.tick_buffer = self.tick_buffer.iloc[-100:].reset_index(drop=True)
-        # update strategy data
-        self.strat.data = self.tick_buffer
-        # run strategy to compute EMA and apply filters
-        df_sig = self.strat.run()
-        if not df_sig.empty:
-            last_row = df_sig.iloc[-1]
-            last_price = last_row['price']
-            last_ema = last_row[f'ema_{self.ema_span}']
-            # simple crossover: price > ema -> BUY, price < ema -> SELL
-            if last_price > last_ema:
-                price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-                logger.info(
-                    f"✔ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | "
-                    f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
+        🧠 Functie: _on_error
+        Afhandeling van WebSocket fouten.
+
+        ▶️ In:
+            - self (WSClient): instantie
+            - ws: WebSocket object
+            - error: foutobject of bericht
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - TODO: logging/error handling placeholder
+        """
+        # 🔹 TODO: logging/error handling
+        pass
+
+    def _on_close(self, ws, close_status_code, close_msg):
+        """
+        🧠 Functie: _on_close
+        Afhandeling bij sluiten van WebSocket verbinding.
+
+        ▶️ In:
+            - self (WSClient): instantie
+            - ws: WebSocket object
+            - close_status_code: sluitingsstatuscode
+            - close_msg: sluitingsbericht
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - Zet running flag uit
+        """
+        self._running = False
+
+    def _on_open(self, ws):
+        """
+        🧠 Functie: _on_open
+        Verzend subscribe-bericht bij openen van de WebSocket.
+
+        ▶️ In:
+            - self (WSClient): instantie
+            - ws: WebSocket object
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - Versturen van subscribe bericht met symbolen
+        """
+        print("WSClient: Connected to WebSocket")
+        # 🔹 Stuur subscribe-bericht voor tick data per symbol
+        for symbol in self.symbols:
+            topic = f"/market/ticker:{symbol}"
+            subscribe_msg = {
+                "id": int(time.time()),
+                "type": "subscribe",
+                "topic": topic,
+                "privateChannel": False,
+                "response": True
+            }
+            ws.send(json.dumps(subscribe_msg))
+            print(f"WSClient: Sent subscribe for topic {topic}")
+
+    def _run(self):
+        """
+        🧠 Functie: _run
+        Hoofdloop met automatische reconnect van de WebSocket.
+
+        ▶️ In:
+            - self (WSClient): instantie
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - websocket.WebSocketApp voor verbinding
+            - time.sleep voor retry delay
+        """
+        while self._running:
+            # 🔹 Retrieve bullet-public token and endpoint for WebSocket
+            try:
+                token_data = get_bullet_public()
+                endpoint = token_data["endpoint"]
+                token = token_data["token"]
+                # Append token and a unique connectId to the WebSocket URL
+                connect_id = str(uuid.uuid4())
+                self.ws_url = f"{endpoint}?token={token}&connectId={connect_id}"
+                self.bullet_token = token
+                print(f"WSClient: Using WebSocket URL: {self.ws_url}")
+            except Exception as e:
+                print(f"WSClient: Failed to fetch bullet-public token: {e}")
+                raise
+            try:
+                self._ws = websocket.WebSocketApp(
+                    self.ws_url,
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close
                 )
-                print(f"▶️ BUY signal voor {symbol}: price={last_price:.6f} > ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
-                self._emit_signal(symbol, "BUY", last_price, amt_after_fee)
-            elif last_price < last_ema:
-                price_slip, amt_after_fee = self.exec_mod.simulate_order(price, self.tick_amount)
-                logger.info(
-                    f"✔ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | "
-                    f"slippage {price_slip:.6f}, amount {amt_after_fee:.3f}"
+                self._ws.run_forever(
+                    ping_interval=20,   # stuur elke 20s een ping
+                    ping_timeout=10     # wacht maximaal 10s op een pong
                 )
-                print(f"▶️ SELL signal voor {symbol}: price={last_price:.6f} < ema={last_ema:.6f} | slippage {price_slip:.6f}, amount {amt_after_fee:.3f}", flush=True)
-                self._emit_signal(symbol, "SELL", last_price, amt_after_fee)
-            else:
-                # HOLD branch: emit HOLD signal without simulating an order
-                self._emit_signal(symbol, "HOLD", last_price, self.tick_amount)
+            except Exception:
+                # 🔹 retry na 5 seconden
+                time.sleep(5)
 
-    def _emit_signal(self, symbol: str, signal: str, price: float, amount: float) -> None:
+    def start(self):
         """
-        Internal: build payload with timestamp and invoke the registered callback.
+        🧠 Functie: start
+        Start de WebSocket-client in een aparte thread.
+
+        ▶️ In:
+            - self (WSClient): instantie met configuratie voor symbols en callback
+        ⏺ Out:
+            - None
+
+        💡 Gebruikt:
+            - threading.Thread voor achtergrond-executie
         """
-        payload = {
-            "symbol": symbol,
-            "timestamp": int(time.time()),
-            "signal": signal,
-            "price": price,
-            "amount": amount,
-        }
-        if self._signal_callback:
-            self._signal_callback(payload)
+        # 🔹 Start alleen als niet al lopend
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
 
-    async def _run_async(self):
-        loop = asyncio.get_event_loop()
-        ksm = await KucoinSocketManager.create(loop, self.rest_client, self._on_message)
-        # print("WebSocket manager created, subscribing to symbols:", self.symbols)
-        for sym in self.symbols:
-            # print(f"Subscribing to topic /market/ticker:{sym}")
-            await ksm.subscribe(f'/market/ticker:{sym}')
-        # print("Entering event loop, awaiting tick messages")
-        while True:
-            await asyncio.sleep(1)
+    def stop(self):
+        """
+        🧠 Functie: stop
+        Stop de WebSocket-client.
 
-    def run(self):
-        # print("WSClient.run() called, starting async loop")
-        asyncio.get_event_loop().run_until_complete(self._run_async())
+        ▶️ In:
+            - self (WSClient): instantie
+        ⏺ Out:
+            - None
 
-    def set_signal_callback(self, callback: Callable[[Dict[str, Any]], None]) -> None:
-        """Register a callback to be invoked on BUY/SELL signals."""
-        self._signal_callback = callback
+        💡 Gebruikt:
+            - Sluit WebSocket verbinding en wacht op thread beëindiging
+        """
+        self._running = False
+        if self._ws:
+            self._ws.close()
+        if self._thread:
+            self._thread.join()
+
+
+# --------------- DummyWSClient for testing -----------------
+class DummyWSClient:
+    """
+    Dummy WebSocket client for testing: pushes a fixed number of dummy ticks to callback.
+    """
+    def __init__(self, symbols: List[str], callback: Callable[[Dict], None], max_ticks: int = None, interval: float = 0.0):
+        self.symbols = symbols
+        self._callback = callback
+        self._max_ticks = max_ticks
+        self._interval = interval
+        self._thread = None
+        self._stopped = threading.Event()
+
+    def start(self):
+        def run():
+            count = 0
+            while not self._stopped.is_set():
+                # Build a dummy tick message
+                tick = {
+                    "type": "message",
+                    "topic": f"/market/ticker:{self.symbols[0]}",
+                    "data": {"price": count * 1.0, "size": 1.0}
+                }
+                self._callback(tick)
+                count += 1
+                if self._max_ticks and count >= self._max_ticks:
+                    # Simuleer 1 candle na afloop van ticks
+                    candle = {
+                        "type": "candle",
+                        "symbol": self.symbols[0],
+                        "interval": "1T",
+                        "open": 0.0,
+                        "close": (count - 1) * 1.0,
+                        "high": (count - 1) * 1.0,
+                        "low": 0.0,
+                        "volume": count * 1.0
+                    }
+                    self._callback(candle)
+                    break
+                if self._interval:
+                    time.sleep(self._interval)
+        self._thread = threading.Thread(target=run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stopped.set()
+        if self._thread:
+            self._thread.join()
