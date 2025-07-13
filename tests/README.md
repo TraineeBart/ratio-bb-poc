@@ -11,6 +11,7 @@ Dit bestand beschrijft de verschillende testtypes binnen dit project, inclusief 
 - `test_output_writer.py`: controleert het correct wegschrijven van bestanden.
 - `test_enrich.py`: test de berekening van RSI en SMA-indicatoren.
 - `test_strategy_csv_flow.py`: valideert of de strategie correcte signalen genereert op basis van tick- en candledata in CSV-vorm.
+- `test_batch_executor.py`: valideert de integratie van BatchBuilder en Executor, inclusief batching van signalen en uitvoering van batches.
 
 ## 🟡 Tijdelijk uitgeschakeld
 
@@ -51,6 +52,12 @@ Deze tests zijn bedoeld als unit-validatie van `enrich_dataframe(...)` en vormen
 ## 🔄 Replay- en CSV-gebaseerde tests
 
 - `test_strategy_csv_flow.py`: valideert of de strategie correcte signalen genereert op basis van tick- en candledata in CSV-vorm. Deze test vervangt deels live end-to-end tests voor logische validatie.
+
+## 🔗 Batch- en Executor pipeline tests
+
+- `test_batch_executor.py`: valideert de end-to-end pipeline van signalen naar batches, batch-executie en resultaatcontrole. Dit is een integratietest en bedoeld als brug tussen core-logica en uitvoering.
+
+👉 Deze test is de basis voor verdere uitbreidingen van de executielaag, zoals parallelle verwerking of koppeling aan real trading clients.
 
 ---
 

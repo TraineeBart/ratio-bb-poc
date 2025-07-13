@@ -8,6 +8,9 @@
 # ╰───────────────────────────────────────────────────────────╯
 # orchestration/run_once.py
 
+from batching.batch_builder import BatchBuilder
+from executor import Executor
+import uuid
 from core.signal_generator import generate_signal
 from core.candle_handler import candle_to_event
 from infra.event_writer import CsvWriter, WebhookWriter, MultiEventWriter
@@ -42,17 +45,29 @@ def run_replay(ticks: list, event_writer):
     first = ticks[0]['price']
     last = ticks[-1]['price']
     signal = generate_signal(first, last)
-    event = {
+
+    # 🔹 Batch input bouwen
+    signals = [{
         'timestamp': ticks[-1]['timestamp'],
-        'payload': {
-            'from_asset': 'THETA' if signal == 'SELL' else 'TFUEL',
-            'to_asset': 'TFUEL' if signal == 'SELL' else 'THETA',
-            'action': signal,
-            'amount': 10000,  # Placeholder voor test
-            'price': last
+        'signal': signal,
+        'from_asset': 'THETA' if signal == 'SELL' else 'TFUEL',
+        'to_asset': 'TFUEL' if signal == 'SELL' else 'THETA',
+        'amount': 10000,
+        'price': last
+    }]
+
+    batches = BatchBuilder.build_batch(signals)
+
+    for batch in batches:
+        batch_id = str(uuid.uuid4())
+        result = Executor.execute_batch(batch)
+
+        event = {
+            'batch_id': batch_id,
+            'result': result,
+            'status': 'completed'
         }
-    }
-    event_writer.write(event)
+        event_writer.write(event)
 
 """
 🧠 Functie: run_live

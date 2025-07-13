@@ -49,7 +49,13 @@ def process_outbox(outbox_path, endpoint):
         for line in f:
             try:
                 event = json.loads(line)
-                if event.get("event_type") == "trade_signal":
+                event_type = event.get("event_type")
+
+                if event_type == "trade_signal":
+                    send_http(event, endpoint)
+
+                elif event_type == "batch_result":
+                    logging.info(f"Versturen batch_result: batch_id={event.get('batch_id', '')}, aantal signalen={len(event.get('signals', []))}")
                     send_http(event, endpoint)
             except json.JSONDecodeError as e:
                 logging.error(f"JSON decode fout: {e}")
