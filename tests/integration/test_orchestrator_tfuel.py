@@ -4,7 +4,7 @@
 # │ Doel: Unit-tests voor src/orchestrator.py                    │
 # │ Auteur: DeveloperGPT                                         │
 # │ Laatste wijziging: 2025-07-08                                │
-# │ Status: draft                                                │
+# │ Status: actief en stabiel                                    │
 # ╰──────────────────────────────────────────────────────────────╯
 import pandas as pd
 import pytest

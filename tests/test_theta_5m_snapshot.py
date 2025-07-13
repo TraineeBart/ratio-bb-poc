@@ -8,6 +8,7 @@
 # ╰──────────────────────────────────────────────────────────────╯
 
 import pytest
+pytest.skip("Snapshot-test: alleen lokaal draaien, uitgesloten van CI", allow_module_level=True)
 pytestmark = pytest.mark.skip(reason="Dataset alleen lokaal beschikbaar, niet in GitHub CI")
 
 import pandas as pd

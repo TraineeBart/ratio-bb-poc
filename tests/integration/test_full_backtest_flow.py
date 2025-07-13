@@ -100,3 +100,4 @@ def test_full_backtest_flow(clean_tmp, capture_webhook, monkeypatch):
     assert len(rows_out) >= 2, f"Expected at least one data row in output.csv, got {len(rows_out)-1}"
 
     # 3) Webhook-validatie niet van toepassing voor live-mode smoke test
+    # 💡 Toekomstige verbetering: valideer inhoud van captured webhook payloads via `capture_webhook` fixture

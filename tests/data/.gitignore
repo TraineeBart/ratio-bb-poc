@@ -1,0 +1,13 @@
+
+
+
+# Ignore alle tijdelijke bestanden
+*.tmp
+*.log
+
+# Outputbestanden uit testflows
+output*.csv
+
+# Laat deze specifieke testdata wél toe
+!test_ticks.csv
+!README.md

@@ -4,7 +4,7 @@
 # │ Doel: Unit-tests voor src/orchestrator_ratio.py              │
 # │ Auteur: DeveloperGPT                                         │
 # │ Laatste wijziging: 2025-07-08                                │
-# │ Status: draft                                                │
+# │ Status: actief                                               │
 # ╰──────────────────────────────────────────────────────────────╯
 import pandas as pd
 import pytest
