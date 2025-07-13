@@ -22,8 +22,8 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 
 | Nr | Taak | Status |
 |----|-----------------------------------------------------------------------------------------------|----|
-| 1  | Controleer en voltooi testmappenstructuur (`unit/`, `integration/`, `live/`)                  | 🔄 |
-| 2  | Standaardiseer CSV-testdata in `tests/data/` (kolommen, types, validatie).                    | 🔄 |
+| 1  | Controleer en voltooi testmappenstructuur (`unit/`, `integration/`, `live/`)                  | ✅ |
+| 2  | Standaardiseer CSV-testdata in `tests/data/` (kolommen, types, validatie).                    | ✅ |
 | 3  | Zet outbox-structuur op voor event-log (JSON-lines, via EventWriter).                         | ✅ |
 | 4  | Bouw webhook-service als los script in `src/webhook_service/`.                                | ✅ |
 | 11 | Los dubbele `kucoin_client.py` op (verwijder duplicatie)                                      | 🔄 |
@@ -35,13 +35,12 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 | 17 | Schrijf unit- en integratietests voor de refactor van `run_once.py` (Quality EngineerGPT)     | 🔄 |
 | 18 | Update CI-checks en coverage-rapportage voor de nieuwe structuur (Quality EngineerGPT)        | 🔄 |
 | 19 | Koppel batching/executor aan de nieuwe pipeline structuur (DeveloperGPT)                      | ✅ |
-| 20 | Voeg README per modulemap toe: `core/`, `infra/`, `orchestration/` (StructuurbeheerderGPT).   | 🔄 |
+| 20 | Voeg README per modulemap toe: `core/`, `infra/`, `orchestration/` (StructuurbeheerderGPT).   | ✅ |
 | 21 | Opruimen verouderde pipeline-bestanden (oude `run_once.py`, dev-tools, snapshots)             | 🔄 |
 | 22 | Koppel batches aan outbox/webhook flow zodat batch-resultaten ook via webhook verwerkt worden | ✅ |
 | 25 | Implementeer parallelle batchverwerking in executor (configurabel maken)                      | 🔄 |
 | 26 | Automatiseer webhook batch-result tests (mock endpoint)                                       | 🔄 |
 | 27 | Voltooi volledige `run_all.py` loop inclusief batch-pipeline                                  | 🔄 |
-| 23 | Implementeer parallelisatie-optie in batch executor (configurabel)                            | 🔄 |
 | 24 | Integreer batchtests in CI pipeline                                                           | 🔄 |
 
 ---
@@ -50,7 +49,7 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 
 | Nr | Taak | Status |
 |----|-------------------------------------------------------|----|
-| 5 | Pas integratietests aan naar CSV-input en mock webhook | 🔄 |
+| 5 | Pas integratietests aan naar CSV-input en mock webhook | ✅ |
 | 6 | Splits CI-workflow in unit/integration/live            | 🔄 |
 | 7 | Voeg testcoverage-rapportage toe per testgroep         | 🔄 |
 | 24 | Integreer batchtests in CI pipeline                   | 🔄 |
@@ -62,7 +61,7 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 | Nr | Taak | Status |
 |----|------------------------------------------------------|----|
 | 8 | Update README’s in `tests/` en `tests/data/`          | 🔄 |
-| 9 | Documenteer webhook-service in `docs/dev/modules.md`  | 🔄 |
+| 9 | Documenteer webhook-service in `docs/dev/modules.md`  | ✅ |
 | 10 | Documenteer besluit in `/docs/decisions/` (afgerond) | ✅ |
 
 ---
