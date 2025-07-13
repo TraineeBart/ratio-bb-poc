@@ -1,5 +1,8 @@
 
 
+> **Snapshot** – Dit document is een momentopname van de teststatus op 2025-07-13. Niet actueel voor de huidige pipeline.
+
+
 # 🧪 Test Sanity Checks – 2025-07-13
 
 ## ✅ Geteste modules:

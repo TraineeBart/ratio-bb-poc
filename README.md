@@ -128,3 +128,114 @@ See `docs/` for detailed guides:
 - `docs/configuration.md`     Configuration reference
 - `docs/architecture/`        Architecture diagrams and data model
 - `docs/stories/`             Story definitions and progress
+# Ratio-BB-POC
+
+Proof-of-Concept voor de Ratio-BB tradingstrategie met modulaire event-driven architectuur.
+
+---
+
+## 🧭 Projectoverzicht
+
+Ratio-BB-POC is een trading pipeline waarin signalen worden gegenereerd, gebatcht, uitgevoerd en via een eventflow worden gelogd of verzonden via webhook.  
+De opzet is schaalbaar, testbaar en geschikt voor real-time of gesimuleerde uitvoering.
+
+---
+
+## 📂 Repository Structuur
+
+| Map | Inhoud |
+|-----|--------|
+| `src/core/` | Kernlogica voor signaalgeneratie en voorraadbeheer |
+| `src/infra/` | EventWriter, outbox, webhook integratie |
+| `src/orchestration/` | Orchestrator `run_once.py` |
+| `src/batching/` | BatchBuilder voor groeperen van signalen |
+| `src/executor/` | BatchExecutor voor uitvoeren van batches |
+| `src/webhook_service/` | Verwerkt outbox-events naar HTTP POST |
+| `tests/` | Unit, integration en live tests |
+| `docs/` | Documentatie en beslislogs |
+| `config/` | Configuratiebestanden (yaml) |
+| `tmp/` | Tijdelijke outputs en CSV logs |
+| `.github/` | CI/CD workflows |
+| `docker-compose.yml` | Container orchestration |
+
+---
+
+## 🔄 Eventflow
+
+```
+Candle → Signaal → Batch → Executor → Outbox → Webhook → Extern Systeem
+```
+
+- Zowel individuele `trade_signal` als `batch_result` events worden verwerkt via dezelfde eventflow.
+
+---
+
+## 🚀 Running the PoC
+
+1. **Activeer live-mode**  
+   ```bash
+   export MODE=live
+   ```
+
+2. **API-credentials**  
+   Plaats je KuCoin-sleutels in `.env`
+
+3. **Start container**  
+   ```bash
+   docker-compose up --build -d
+   ```
+
+4. **Volg logs**  
+   ```bash
+   docker logs ratio-live -f
+   ```
+
+5. **Healthcheck**  
+   ```bash
+   curl http://localhost:8080/health
+   ```
+
+---
+
+## ⚙️ Batching Configuratie
+
+Voeg in `config/config.yaml` toe:
+
+```yaml
+batching:
+  window_hours: 24
+  max_batches: 5
+```
+
+---
+
+## 🧪 Testen
+
+1. **Unit tests**
+
+```bash
+pytest tests/unit/
+```
+
+2. **Integratietests**
+
+```bash
+pytest tests/integration/
+```
+
+3. **Volledige test suite**
+
+```bash
+pytest --cov=src --cov-report=term-missing
+```
+
+---
+
+## 📄 Documentatie
+
+Zie `docs/` voor uitgebreide uitleg:
+
+- `docs/decisions/` – Beslislogboek
+- `docs/reviews/` – Code reviews en snapshots
+- `docs/dev/modules.md` – Overzicht modules
+- `docs/project-taskboard.md` – Actuele takenlijst

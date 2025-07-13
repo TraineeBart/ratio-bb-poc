@@ -1,3 +1,5 @@
+> **Snapshot** – Dit document beschrijft de testopzet op 2025-07-13. Voor actuele teststructuur zie `tests/README.md`.
+
 # 📊 Test Overzicht - 2025-07-13
 
 Doel:  

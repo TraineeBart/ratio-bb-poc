@@ -1,54 +1,64 @@
-# 📦 Modules Overzicht
+# 📦 Modules Overzicht – Ratio-BB-POC
 
-## Webhook Service
+---
 
-De **webhook_service** verstuurt `trade_signal` events vanuit de outbox naar een extern HTTP endpoint.
+## 🔧 Kernmodules
 
-### Bestand
-`src/webhook_service/webhook_service.py`
+| Module | Beschrijving |
+|---------|--------------|
+| **core/** | Bevat de handelslogica: signaalgeneratie, voorraadbeheer |
+| **infra/** | Schrijft events naar de outbox via `EventWriter`. Verzorgt de koppeling naar de webhook-service |
+| **orchestration/** | Stuurt de pipeline aan via `run_once.py` |
+| **batching/** | Bundelt individuele signalen tot batches op basis van liquiditeitswindow en voorraad |
+| **executor/** | Verwerkt batches en geeft resultaten terug |
+| **webhook_service/** | Verstuurt outbox-events (zowel `trade_signal` als `batch_result`) naar HTTP endpoints |
 
-### Functie
-- Leest `outbox/events.jsonl`
-- Filtert op `event_type: trade_signal`
-- Verstuurt deze events via HTTP POST naar een extern endpoint
-- Robuust: fouten worden gelogd, service crasht niet
+---
 
-### Usage
+## 🔄 Dataflow
 
-Start de webhook-service met:
+```mermaid
+graph LR
+    A[Candle Data] --> B[Signal Generator (core)]
+    B --> C[BatchBuilder (batching)]
+    C --> D[Executor (executor)]
+    D --> E[EventWriter (infra)]
+    E --> F[Webhook Service (webhook_service)]
+```
+
+---
+
+## 📂 Bestandsoverzicht
+
+### **Webhook Service**
+
+- **Bestand**: `src/webhook_service/webhook_service.py`
+- **Doel**: 
+  - Leest `outbox/events.jsonl`
+  - Filtert op `trade_signal` en `batch_result`
+  - Verstuurt via HTTP POST
+  - Robuuste foutafhandeling
+
+#### Usage:
 
 ```bash
 python src/webhook_service/webhook_service.py --endpoint http://localhost:9000/webhook
 ```
 
-⚠ **Let op:**  
-Poort 8000 is mogelijk al in gebruik in deze omgeving.  
-Gebruik daarom bijvoorbeeld poort **9000** of een andere vrije poort voor je webhook endpoint.
+#### Test:
 
-### Testen
-
-Er is een integratietest beschikbaar in:
-
-`tests/integration/test_webhook_service.py`
-
-De HTTP-call wordt daarin gemockt via `monkeypatch`.
+- `tests/integration/test_webhook_service.py`
 
 ---
 
-## Batch Result Events
+### **Batch Result Events**
 
-De Executor module schrijft na batch-executie een `batch_result` event naar de outbox.
+- **Bestand**: `src/executor/execute_batch.py`
+- **Doel**: 
+  - Verwerkt batches
+  - Schrijft `batch_result` events naar de outbox via `EventWriter`
 
-### Bestand
-`src/executor/execute_batch.py`
-
-### Functie
-- Verwerkt batches van signalen
-- Maakt per batch een event aan met `type: batch_result`
-- Schrijft deze events naar `outbox/events.jsonl` via `EventWriter`
-- Events zijn compatible met de bestaande webhook flow
-
-### Eventstructuur
+#### Eventstructuur:
 
 | Veld        | Uitleg                          |
 |-------------|--------------------------------|
@@ -57,8 +67,16 @@ De Executor module schrijft na batch-executie een `batch_result` event naar de o
 | `signals`   | Lijst van signalen met status   |
 | `timestamp` | ISO 8601 tijd van verwerking    |
 
-### Testen
+#### Test:
 
-De pipeline wordt getest via:
+- `tests/integration/test_batch_executor.py`
 
-`tests/integration/test_batch_executor.py`
+---
+
+## 📝 Documentatie
+
+Voor uitgebreide beslissingen en ontwerpkeuzes, zie:
+
+- `/docs/decisions/`
+- `/docs/reviews/`
+- `/docs/project-taskboard.md`
