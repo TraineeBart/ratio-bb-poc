@@ -22,3 +22,4 @@ data/*.csv
 !data/sample-*.csv
 # wél historische data
 !data/historical.csv
+docs_and_readmes_*.zip

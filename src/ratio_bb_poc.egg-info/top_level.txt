@@ -1,4 +1,0 @@
-client
-models
-parser
-utils

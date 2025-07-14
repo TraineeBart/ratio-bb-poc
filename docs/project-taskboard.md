@@ -1,4 +1,4 @@
-# 📋 Project Taskboard – Ratio-BB-POC
+📋 Project Taskboard – Ratio-BB-POC
 
 **Doel:** Overzicht van openstaande taken, status en voortgang.  
 Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
@@ -6,6 +6,8 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 ---
 
 ## ✅ Besluiten (referentie)
+
+> **Hoofdprioriteit blijft het opschonen en afronden van de pipeline; Telegram signaleringsbot is een tussendoel.**
 
 - **Webhook wordt losgekoppeld en als aparte service gebouwd**  
 - **Testinfrastructuur wordt opgeschoond en heringericht naar unit/integration/live structuur**  
@@ -43,6 +45,16 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 | 27 | Voltooi volledige `run_all.py` loop inclusief batch-pipeline                                  | 🔄 |
 | 24 | Integreer batchtests in CI pipeline                                                           | 🔄 |
 
+### 🛰️ Live Signaleringsbot – Telegram Scope
+
+| Nr | Taak | Status |
+|----|----------------------------------------------------------------|----|
+| 28 | Voltooi `run_all.py` loop voor continue live-signaalverwerking | 🔄 |
+| 29 | Activeer live WebSocket feed of mock-feed voor real-time data  | 🔄 |
+| 30 | Bouw Telegram webhook-integratie voor `batch_result` meldingen | 🔄 |
+| 31 | Formatteer meldingen met actie, volume, ratio en batch-info    | 🔄 |
+| 32 | Test live pipeline met voorraad-simulatie en Telegram output   | 🔄 |
+
 ---
 
 ### 🧪 Testen & CI
@@ -72,4 +84,4 @@ Gebruik dit bord als referentie bij samenwerking met specialistische GPT’s.
 - **Voortgang bijhouden**: Markeer taken als ✅ of 🔄 of ❌ in dit document
 - **Geen nieuwe taken toevoegen zonder akkoord via PM-rol**
 
----
+---</file>
