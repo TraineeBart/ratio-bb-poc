@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import requests
+from webhook_service.telegram_helper import send_telegram_message
 
 logging.basicConfig(level=logging.INFO)
 
@@ -56,6 +57,54 @@ def process_outbox(outbox_path, endpoint):
 
                 elif event_type == "batch_result":
                     logging.info(f"Versturen batch_result: batch_id={event.get('batch_id', '')}, aantal signalen={len(event.get('signals', []))}")
+                    try:
+                        signals = event.get('signals', [])
+                        first_signal = signals[0] if signals else {}
+                        action = first_signal.get('signal', 'UNKNOWN')
+                        from_asset = first_signal.get('from_asset', 'UNKNOWN')
+                        to_asset = first_signal.get('to_asset', 'UNKNOWN')
+                        volume = sum([s.get('amount', 0) for s in signals])
+                        ratio = event.get('ratio', 'N/A')
+                        timestamp = event.get('timestamp', '')
+                        batch_id = event.get('batch_id', '')
+
+                        # Bepaal uitleg op basis van ratio
+                        uitleg = ""
+                        try:
+                            ratio_float = float(ratio)
+                        except Exception:
+                            ratio_float = None
+                        if ratio_float is not None and ratio_float >= 25:
+                            uitleg = "Bij een hoge ratio wordt Theta verkocht tegen USDT, waarna USDT wordt gebruikt om TFuel te kopen."
+                            stappen = "Theta → USDT → TFuel"
+                            actie_str = f"SELL {from_asset}"
+                        elif ratio_float is not None and ratio_float <= 22:
+                            uitleg = "Bij een lage ratio wordt TFuel verkocht tegen USDT, waarna USDT wordt gebruikt om Theta te kopen."
+                            stappen = "TFuel → USDT → Theta"
+                            actie_str = f"SELL {from_asset}"
+                        else:
+                            uitleg = "Ratio binnen middengebied – strategie bepaalt dynamisch de actie."
+                            stappen = f"{from_asset} → USDT → {to_asset}"
+                            actie_str = f"{action} {from_asset}"
+
+                        message = f"""
+📡 *BB-Ratio Trade Signaal*
+
+🔁 Actie: {actie_str}
+📊 Ratio: {ratio}
+⚖️ Volume: {volume} {to_asset}
+🕒 Tijd: {timestamp}
+🔗 Batch-ID: {batch_id}
+
+ℹ️ Uitleg:
+{uitleg}
+
+Trade stappen:
+{stappen}
+                        """
+                        send_telegram_message(message.strip())
+                    except Exception as e:
+                        logging.error(f"Fout bij verzenden Telegram melding: {e}")
                     send_http(event, endpoint)
             except json.JSONDecodeError as e:
                 logging.error(f"JSON decode fout: {e}")

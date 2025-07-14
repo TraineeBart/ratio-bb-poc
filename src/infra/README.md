@@ -13,6 +13,7 @@ Dit is de output- en interfacinglaag tussen de core-logica en de buitenwereld.
 |----------|--------|
 | `event_writer.py` | Schrijft events naar `outbox/events.jsonl`. Ondersteunt `trade_signal` en `batch_result` events. |
 | `ws_client_adapter.py` | Adapter voor WebSocket clients. Kan live-data ophalen of mock-data leveren voor tests. |
+| `ws_client_adapter.py` | Adapter voor WebSocket clients. Ondersteunt live-mode via KuCoin met token-auth en sim-mode via MockWSClient. |
 
 ---
 
@@ -29,6 +30,7 @@ Dit is de output- en interfacinglaag tussen de core-logica en de buitenwereld.
 
 - Events worden altijd geschreven naar `outbox/events.jsonl` als JSON-lines.
 - De `webhook_service` leest deze outbox en stuurt ze door naar HTTP endpoints.
+- WebSocket-verbindingen worden opgezet via `ws_client_adapter.py`, inclusief dynamisch ophalen van tokens via KuCoin REST API (`bullet-public`).
 
 ---
 
@@ -38,6 +40,7 @@ Dit is de output- en interfacinglaag tussen de core-logica en de buitenwereld.
 - I/O gebeurt altijd via `EventWriter`.
 - Externe afhankelijkheden worden via dependency injection toegevoegd.
 - Geschikt voor uitbreiding met storage-clients of externe API-koppelingen.
+- WebSocket-clients moeten fallback en reconnect logic bevatten voor robuustheid.
 
 ---
 

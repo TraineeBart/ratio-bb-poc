@@ -18,6 +18,7 @@ De webhook-service verzendt events uit de outbox naar een extern HTTP endpoint.
   - `batch_result`
 - Verstuurt events via HTTP POST naar een extern endpoint
 - Logt fouten per event, maar blijft draaien (fail-safe)
+- Stuurt bij batch-result events ook een Telegram-melding met actie, ratio, volume en uitleg
 
 ---
 
@@ -26,7 +27,7 @@ De webhook-service verzendt events uit de outbox naar een extern HTTP endpoint.
 | Type           | Beschrijving |
 |----------------|--------------|
 | `trade_signal` | Losse BUY/SELL signalen |
-| `batch_result` | Batch-uitkomsten met lijst van signalen en status per item |
+| `batch_result` | Batch-uitkomsten met lijst van signalen en status per item. Inclusief verzenden van Telegram-notificatie met omruillogica. |
 
 ---
 
@@ -62,6 +63,12 @@ python webhook_service.py --endpoint http://localhost:9000/webhook
 | `--endpoint`| Doel-URL voor de webhook POST-calls        | *Verplicht opgeven*     |
 
 ⚠ **Let op:** Gebruik bij voorkeur poort **9000** of een andere vrije poort. Poort 8000 is vaak al in gebruik.
+
+### Telegram Meldingen
+
+- Telegram meldingen worden automatisch verstuurd bij `batch_result` events.
+- Vereist `TELEGRAM_TOKEN` en `TELEGRAM_CHAT_ID` in de `.env` of als omgevingsvariabelen.
+- Berichten bevatten uitleg over de omruilactie conform strategie.
 
 ---
 
