@@ -3,12 +3,13 @@
 ## 🎯 Doel van deze map
 
 De `src/`-directory bevat alle **kerncode** van het Ratio-BB-POC project.  
-Het is gestructureerd volgens de scheiding tussen:
+De structuur is modulair opgebouwd volgens de scheiding tussen:
 
-- **Core strategie** – Buy/sell beslissingen en tradinglogica
-- **I/O & Connectors** – WebSocket clients, API-connecties, webhook calls
-- **Orchestration** – `run_once`, orchestrators voor workflows
-- **Helpers & Utilities** – Batchhelpers, liquiditeit, parsing, etc.
+- **Core strategie** – Signaalgeneratie en voorraadbeheer
+- **Infra & Connectors** – Outbox, webhook-service, websocket clients
+- **Batching & Executor** – Groeperen van signalen en uitvoeren van batches
+- **Orchestration** – `run_once.py` en `run_all.py` voor workflow-aansturing
+- **Legacy & Experimental** – Oude code en experimentele tools
 
 ---
 
@@ -16,45 +17,42 @@ Het is gestructureerd volgens de scheiding tussen:
 
 | Map / Bestand | Doel |
 |---------------|------|
-| `strategy.py` | Hoofdlogica voor buy/sell beslissingen |
-| `strategies/` | Verschillende implementaties van strategieën |
-| `executor.py` | Uitvoeren van trades (TFUEL/THETA) |
-| `outputs/` | Output naar files of webhook (wordt losgekoppeld) |
-| `ws_client.py` | WebSocket verbindingen (real-time data) |
-| `kucoin_client.py` / `client/kucoin_client.py` | KuCoin API-connectie (opschonen gepland) |
-| `orchestrator_*` | Aanroepen van workflows per token of ratio |
-| `utils/` | Hulpfuncties zoals candles, tijdzone, API-calls |
-| `enrichment/` | Verrijking van data met indicatoren |
-| `models/` | Datamodellen voor dataflow (bijv. KuCoin) |
-| `run_once.py` | Orchestration voor één run (loskoppeling webhook gepland) |
-| `developer.py` | Tools voor debug / ontwikkeling (apart zetten gepland) |
+| `batching/` | BatchBuilder voor signalen naar batches |
+| `core/` | Handelslogica en voorraadbeheer |
+| `executor/` | BatchExecutor, voert batches uit |
+| `infra/` | EventWriter, outbox, WebSocket adapter |
+| `webhook_service/` | Verzenden van events naar HTTP endpoints |
+| `orchestration/` | Orchestration via `run_once.py` en `run_all.py` |
+| `client/` | KuCoin client voor live data |
+| `utils/` | Tijdzone helper |
+| `experimental/` | Experimentele tools, zoals `developer.py` |
+| `legacy/` | Oude orchestrators, parsers, strategies en test-helpers |
 
 ---
 
-## 🧹 Afbakening & Afspraken
+## 🔧 Afbakening & Afspraken
 
 - **Geen tests in `src/`**  
-  → Testbestanden horen thuis in `tests/`, niet in `src/`
-  
-- **Geen dev-tools of experimenten in `src/`**  
-  → `developer.py` wordt verplaatst of gelabeld als experimenteel
-  
-- **Webhooks worden losgekoppeld**  
-  → Zie: `/docs/decisions/2025-07-11-webhook-and-test-architecture-plan.md`
+  → Alle tests staan in `tests/`
+
+- **Geen losse scripts in `src/` root**  
+  → Gebruik `orchestration/` of `experimental/` voor losse tools
+
+- **Legacy en experimental code is verplaatst naar aparte mappen**
 
 ---
 
 ## 📄 Documentatie & Review
 
-- **Volledig overzicht van de `src/` map**:  
+- Volledig overzicht van de `src/` map:  
   → Zie: `/docs/reviews/src-overview-2025-07-13.md`
 
----
-
-## 🚧 Openstaande punten
-
-- Webhook loskoppelen naar aparte service
-- Dubbele KuCoin clients samenvoegen
-- Testbestanden (`test_ws.py`, `kucoin_test.py`) verplaatsen naar `tests/`
+- CI en teststatus:  
+  → Zie: `/docs/dev/modules.md`
 
 ---
+
+## ✅ Status
+
+- Pipeline is opgeschoond en modulair
+- Klaar voor verdere uitbreiding naar live feed en Telegram notificaties
