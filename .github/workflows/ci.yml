@@ -1,5 +1,7 @@
 name: CI
 
+# Deze CI-pipeline draait unit- en integratietests, inclusief de batch- en webhookflow
+
 on:
   push:
     branches:
@@ -71,6 +73,15 @@ jobs:
       - name: Run executor integration tests
         run: |
           pytest tests/test_executor_integration.py --maxfail=1 -q
+
+      - name: Run batch and webhook integration tests
+        run: |
+          pytest tests/integration/test_batch_executor.py
+          pytest tests/integration/test_webhook_service.py
+
+      - name: Run run_once sanity test
+        run: |
+          pytest tests/integration/test_run_once_sanity.py
 
       # ----------------------------------------------------------------------------
       # Coverage Gates:

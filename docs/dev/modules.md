@@ -80,3 +80,26 @@ Voor uitgebreide beslissingen en ontwerpkeuzes, zie:
 - `/docs/decisions/`
 - `/docs/reviews/`
 - `/docs/project-taskboard.md`
+
+---
+
+## ✅ CI Pipeline Status – 2025-07-13
+
+De GitHub Actions pipeline draait nu automatisch:
+
+- **Unit tests** (`tests/unit/`)
+- **Integration tests** (`tests/integration/`):
+   - `test_batch_executor.py`
+   - `test_webhook_service.py`
+   - `test_run_once_sanity.py`
+
+### Coverage gates
+
+- `run_once.py` ≥ 65%
+- `executor.py` ≥ 80%
+- `kucoin_client.py` ≥ 80%
+- `ws_client.py` en `ws_replay.py` ≥ 80% (legacy/ wordt later opgeschoond)
+
+### Foutafhandeling
+
+- Bij CI-failures wordt automatisch een Telegram-notificatie gestuurd via `appleboy/telegram-action`
