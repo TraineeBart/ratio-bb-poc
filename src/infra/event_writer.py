@@ -31,6 +31,7 @@ import os
 import csv
 import requests
 from typing import Protocol
+import json
 
 class EventWriterProtocol(Protocol):
     """
@@ -67,13 +68,34 @@ class CsvWriter(EventWriterProtocol):
     def write(self, event: dict) -> None:
         with open(self.path, 'a', newline='') as f:
             writer = csv.writer(f)
+            payload = event.get('payload', {})
             writer.writerow([
-                event['timestamp'],
-                event['payload']['from_asset'],
-                event['payload']['to_asset'],
-                event['payload'].get('price', 'N/A'),
-                event['payload']['action']
+                event.get('timestamp', 'N/A'),
+                payload.get('from_asset', 'N/A'),
+                payload.get('to_asset', 'N/A'),
+                payload.get('price', event.get('price', 'N/A')),
+                payload.get('action', event.get('signal', 'N/A'))
             ])
+
+class JsonlWriter(EventWriterProtocol):
+    """
+    🧠 Klasse: JsonlWriter
+    Schrijft events naar een JSONL-bestand (één JSON per regel).
+
+    ▶ In:
+        - path (str): pad naar de JSONL output file
+
+    ⏺ Out:
+        - Geen directe output; schrijft naar bestandssysteem.
+    """
+    def __init__(self, path: str):
+        self.path = path
+        if not os.path.exists(os.path.dirname(self.path)):
+            os.makedirs(os.path.dirname(self.path))
+
+    def write(self, event: dict) -> None:
+        with open(self.path, 'a') as f:
+            f.write(json.dumps(event) + "\n")
 
 class WebhookWriter(EventWriterProtocol):
     """

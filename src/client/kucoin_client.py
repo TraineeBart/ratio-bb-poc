@@ -142,5 +142,6 @@ def get_bullet_public() -> dict:
     server = servers[0]
     return {
         "endpoint": server.get("endpoint"),
-        "token": data.get("token")
+        "token": data.get("token"),
+        "pingInterval": server.get("pingInterval")
     }

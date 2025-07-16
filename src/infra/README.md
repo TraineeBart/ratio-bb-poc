@@ -48,3 +48,15 @@ Dit is de output- en interfacinglaag tussen de core-logica en de buitenwereld.
 
 Actief – v1.1  
 Klaar voor uitbreiding naar live-API adapters of opslagconnecties.
+
+## Update 2025-07-15
+
+- `WSClientAdapter` is volledig aangepast naar `async` gedrag.
+- Threading is verwijderd. WebSocket draait nu in dezelfde asyncio-eventloop als de pipeline.
+- Ping/pong en reconnects zijn getest en stabiel bij live gebruik.
+
+```
+- Exponential backoff toegevoegd bij reconnects (1s → max 30s).
+- Ping-loop stopt veilig bij gesloten socket, voorkomt race conditions.
+- Alle KuCoin-specifieke WS-logica is vastgelegd in `docs/infra/kucoin_ws_notes.md`.
+```

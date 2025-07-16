@@ -1,12 +1,10 @@
-
-
 # ╭───────────────────────────────────────────────────────────╮
-# │ File: src/executor/execute_batch.py                        │
+# │ File: src/executor/execute_batch.py                       │
 # │ Module: executor                                          │
 # │ Doel: Uitvoeren van batches met trading signalen          │
-# │ Auteur: DeveloperGPT                                     │
+# │ Auteur: DeveloperGPT                                      │
 # │ Laatste wijziging: 2025-07-13                             │
-# │ Status: stable                                           │
+# │ Status: stable                                            │
 # ╰───────────────────────────────────────────────────────────╯
 
 
@@ -53,7 +51,8 @@ class Executor:
             time.sleep(0.1)
             results.append({
                 'signal': signal,
-                'executed_price': signal['price'],
+                'amount': signal.get('amount', 100),  # fallback naar 100 als amount ontbreekt
+                'executed_price': None,  # placeholder voor echte executieprijs
                 'status': 'executed'
             })
 

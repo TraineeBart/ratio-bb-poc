@@ -7,9 +7,12 @@
 # │ Status: stable                                           │
 # ╰───────────────────────────────────────────────────────────╯
 
+# Voeg dotenv import toe
+from dotenv import load_dotenv
 import os
 import requests
 import logging
+
 
 def send_telegram_message(text: str):
     """
@@ -22,6 +25,10 @@ def send_telegram_message(text: str):
     💡 Gebruikt:
         - TELEGRAM_TOKEN en TELEGRAM_CHAT_ID uit omgevingsvariabelen of .env
     """
+    # Laad .env alleen als deze nog niet geladen is
+    if not os.getenv("TELEGRAM_TOKEN"):
+        load_dotenv()
+
     token = os.getenv("TELEGRAM_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
@@ -32,12 +39,15 @@ def send_telegram_message(text: str):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
+        "text": text
+        # parse_mode is tijdelijk verwijderd voor plain text test
     }
 
     try:
         response = requests.post(url, json=payload)
-        response.raise_for_status()
+        if response.status_code != 200:
+            logging.error(f"[Telegram] Fout {response.status_code}: {response.text}")
+        else:
+            logging.info("[Telegram] Bericht succesvol verzonden.")
     except Exception as e:
-        logging.error(f"Fout bij verzenden Telegram bericht: {e}")
+        logging.error(f"[Telegram] Verzendfout: {e}")

@@ -23,3 +23,8 @@ data/*.csv
 # wél historische data
 !data/historical.csv
 docs_and_readmes_*.zip
+
+# Review- en pipeline-artifacts
+*.zip
+/tmp/*
+/outbox/*

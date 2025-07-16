@@ -45,6 +45,14 @@ De webhook-service verzendt events uit de outbox naar een extern HTTP endpoint.
 }
 ```
 
+Bij batch-resultaten bevat het Telegram-bericht nu:
+
+- **Actie**: BUY of SELL met bijbehorend asset (bijv. SELL THETA)
+- **Ratio**: Inclusief duiding (hoog/laag)
+- **Volume**: TFUEL of THETA afhankelijk van trade
+- **Uitleg**: Contextuele uitleg bij de actie
+- **Trade Stappen**: Visuele notatie zoals Theta → USDT → TFuel
+
 ---
 
 ## 🚀 Usage
@@ -76,6 +84,7 @@ python webhook_service.py --endpoint http://localhost:9000/webhook
 
 - Netwerkfouten per event worden gelogd
 - De service blijft draaien; mislukte events worden overgeslagen tenzij een retry-mechanisme is geactiveerd (backlog)
+- Fouten in het verzenden van Telegram-berichten worden gelogd, maar blokkeren de eventflow niet.
 
 ---
 

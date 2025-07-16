@@ -1,21 +1,6 @@
 # 🎛️ Orchestration Layer
 
 ## Doel
-Stuurt de flow aan van signalen → batches → executor → eventwriter.
-
-## Inhoud
-- `run_once.py` – main orchestration loop
-- `run_all.py` – (toekomstig) loop over meerdere runs
-
-## Afspraken
-- Alleen orchestratie: geen business logica of infrastructuur
-- Gebruik dependency injection voor writers en executor
-
-## Status
-Actief – v1.0
-# 🎛️ Orchestration Layer
-
-## Doel
 
 De `orchestration/` layer coördineert de volledige pipeline-flow van Ratio-BB-POC:
 
@@ -60,3 +45,12 @@ Deze laag bevat geen handelslogica of infrastructuurcode, maar verbindt de compo
 
 - Actief – versie 1.0
 - Klaar voor uitbreiding naar `run_all.py` live loop in volgende iteratie
+
+## Update 2025-07-15
+
+- `run_live` gebruikt nu `await ws.start()` i.p.v. `ws.start()` om dubbele eventloops te voorkomen.
+- De WebSocket-client draait volledig in de hoofd-eventloop zonder threading.
+- Tick-logging is verplaatst naar `DEBUG` niveau voor betere overzichtelijkheid tijdens live runs.
+- Exponential backoff toegevoegd aan WebSocket reconnect-logica.
+- Ping-loop draait asynchroon en stopt netjes bij disconnects.
+- Orchestrator is nu volledig compatibel met de verbeterde infra WS-client.

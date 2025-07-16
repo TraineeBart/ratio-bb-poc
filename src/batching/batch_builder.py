@@ -1,5 +1,3 @@
-
-
 # ╭───────────────────────────────────────────────────────────╮
 # │ File: src/batching/batch_builder.py                       │
 # │ Module: batching                                          │
@@ -10,6 +8,7 @@
 # ╰───────────────────────────────────────────────────────────╯
 
 import math
+import pandas as pd
 
 class BatchBuilder:
     """
@@ -28,7 +27,7 @@ class BatchBuilder:
     """
 
     @staticmethod
-    def build_batch(signals: list[dict], max_signals_per_batch: int = 3) -> list[dict]:
+    def build_batch(signals: list[dict], max_signals_per_batch: int = 3, ratio: float = None) -> list[dict]:
         """
         🧠 Functie: build_batch
         Verdeel signalen over batches.
@@ -50,9 +49,39 @@ class BatchBuilder:
         for i in range(num_batches):
             start = i * max_signals_per_batch
             end = start + max_signals_per_batch
+            # Voeg de ratio toe aan de batch voor downstream verwerking (bijv. webhook meldingen)
             batch = {
-                'signals': signals[start:end]
+                'signals': signals[start:end],
+                'ratio': ratio if ratio is not None else signals[start]['ratio'] if 'ratio' in signals[start] else "-"
             }
             batches.append(batch)
 
         return batches
+
+    @staticmethod
+    def df_to_signals(df: pd.DataFrame) -> list[dict]:
+        """
+        Converteer DataFrame naar lijst van signal dicts voor batching.
+
+        ▶ In:
+            - df: DataFrame met kolommen ['symbol', 'signal', 'amount' (optioneel)]
+
+        ⏺ Out:
+            - list[dict]: Signal dicts per actie (BUY/SELL)
+
+        🧠 Werkt samen met bb_ratio_strategy output.
+        """
+        assert 'ratio' in df.columns, "De kolom 'ratio' ontbreekt in de dataframe maar is vereist voor batch signals."
+        signals = []
+        filtered = df[df['signal'] != 'HOLD']
+
+        for _, row in filtered.iterrows():
+            signal = {
+                'symbol': row['symbol'],
+                'signal': row['signal'],
+                'amount': row.get('amount', None),  # optioneel veld
+                'ratio': row['ratio']  # verplichte toevoeging
+            }
+            signals.append(signal)
+
+        return signals

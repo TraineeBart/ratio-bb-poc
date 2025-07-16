@@ -38,3 +38,9 @@ Dit is de enige laag die bepaalt of er een BUY of SELL wordt gegenereerd, volled
 
 Actief – v1.1  
 Klaar voor uitbreiding naar geavanceerdere trade-criteria in volgende iteraties.
+
+## Update 2025-07-15
+
+- `signal_generator.py` logt nu per tick op `DEBUG` niveau om live gedrag beter te volgen.
+- `tick_to_event()` is toegevoegd in `orchestration` voor aparte verwerking van tick-events.
+- `candle_to_event()` blijft exclusief voor candles; de scheiding is nu expliciet.
